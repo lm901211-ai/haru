@@ -4,6 +4,7 @@ import { Card, NumberField, ProgressBar, styles } from './ui';
 import { useStore } from '../store';
 import { fetchWeather, Weather } from '../weather';
 import { bmiInfo, dayScore, scoreComment } from '../score';
+import { challengeProgress } from '../challenges';
 import { addDays, todayKey, weekdayOf } from '../date';
 import { colors } from '../theme';
 
@@ -182,6 +183,53 @@ export function WeightCard() {
           <Text style={{ color: bmi.color, fontWeight: '700' }}>{bmi.label}</Text>
         </View>
       )}
+    </Card>
+  );
+}
+
+export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
+  const { data, updateChallenge } = useStore();
+  const today = todayKey();
+  return (
+    <Card title="🎯 목표 진행" right={<Pressable onPress={onOpen}><Text style={{ color: colors.primary, fontWeight: '600' }}>전체 ›</Text></Pressable>}>
+      {data.challenges.length === 0 && (
+        <Pressable onPress={onOpen}>
+          <Text style={[styles.muted, { textAlign: 'center', paddingVertical: 6 }]}>다이어트, 공부 같은 장·단기 목표를 만들어 보세요 ›</Text>
+        </Pressable>
+      )}
+      {data.challenges.map((c) => {
+        const p = challengeProgress(data, c, today);
+        const pct = Math.round(p.ratio * 100);
+        const color = p.status === 'done' ? colors.steps : p.status === 'behind' ? colors.exercise : colors.primary;
+        const doneToday = c.kind === 'streak' && c.doneDates.includes(today);
+        return (
+          <View key={c.id} style={{ gap: 5 }}>
+            <View style={styles.row}>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: colors.text }} numberOfLines={1}>
+                {c.emoji} {c.title}
+              </Text>
+              <Text style={styles.muted}>{p.dayLabel}</Text>
+              {c.kind === 'streak' && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={() =>
+                    updateChallenge(c.id, (x) =>
+                      x.kind === 'streak'
+                        ? { ...x, doneDates: doneToday ? x.doneDates.filter((d) => d !== today) : [...x.doneDates, today] }
+                        : x,
+                    )
+                  }
+                  style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? colors.steps : colors.bg, borderWidth: 1, borderColor: doneToday ? colors.steps : colors.line }}
+                >
+                  {doneToday && <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>✓</Text>}
+                </Pressable>
+              )}
+              <Text style={{ width: 44, textAlign: 'right', fontWeight: '800', color }}>{pct}%</Text>
+            </View>
+            <ProgressBar value={p.ratio} max={1} color={color} marker={p.expected} />
+          </View>
+        );
+      })}
     </Card>
   );
 }

@@ -45,11 +45,15 @@ export function Card({ title, right, children, style }: { title?: string; right?
   );
 }
 
-export function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
+/** marker: 0~1 위치에 세로 표시선 (예: 지금쯤 와 있어야 할 지점) */
+export function ProgressBar({ value, max, color, height = 8, marker }: { value: number; max: number; color: string; height?: number; marker?: number }) {
   const ratio = max > 0 ? Math.min(value / max, 1) : 0;
   return (
-    <View style={styles.barTrack}>
-      <View style={[styles.barFill, { width: `${ratio * 100}%`, backgroundColor: color }]} />
+    <View style={[styles.barTrack, { height, borderRadius: height / 2 }]}>
+      <View style={[styles.barFill, { width: `${ratio * 100}%`, backgroundColor: color, borderRadius: height / 2 }]} />
+      {marker != null && marker > 0 && marker < 1 && (
+        <View style={{ position: 'absolute', left: `${marker * 100}%`, top: 0, bottom: 0, width: 2, backgroundColor: colors.text, opacity: 0.45 }} />
+      )}
     </View>
   );
 }

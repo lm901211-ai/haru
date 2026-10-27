@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { formatKey, todayKey } from '../date';
 import { colors } from '../theme';
 import { TodoRow } from './TodoScreen';
-import { ScoreReport, WeatherCard, WeightCard } from '../components/home';
+import { ChallengeSummary, ScoreReport, WeatherCard, WeightCard } from '../components/home';
 import { Tab } from '../tabs';
 
 function greeting() {
@@ -37,6 +37,7 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
 
       <WeatherCard />
       <ScoreReport />
+      <ChallengeSummary onOpen={() => goTo('goal')} />
 
       <Card title="오늘의 건강" right={<Pressable onPress={() => goTo('health')}><Text style={{ color: colors.primary, fontWeight: '600' }}>기록하기 ›</Text></Pressable>}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

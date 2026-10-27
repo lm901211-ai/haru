@@ -9,6 +9,7 @@ import TodayScreen from './src/screens/TodayScreen';
 import HealthScreen from './src/screens/HealthScreen';
 import TodoScreen from './src/screens/TodoScreen';
 import HabitScreen from './src/screens/HabitScreen';
+import GoalScreen from './src/screens/GoalScreen';
 
 function Main() {
   const { loaded } = useStore();
@@ -28,6 +29,7 @@ function Main() {
       <View style={styles.fill}>
         {tab === 'today' && <TodayScreen goTo={setTab} />}
         {tab === 'health' && <HealthScreen />}
+        {tab === 'goal' && <GoalScreen />}
         {tab === 'todo' && <TodoScreen />}
         {tab === 'habit' && <HabitScreen />}
       </View>

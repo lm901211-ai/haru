@@ -38,10 +38,24 @@ export type Profile = {
   heightCm?: number;
 };
 
+type ChallengeBase = {
+  id: string;
+  title: string;
+  emoji: string;
+  startDate: string;
+  days: number; // 기간(일) — 매일 실천형은 목표 일수
+};
+
+export type WeightChallenge = ChallengeBase & { kind: 'weight'; startWeight: number; targetWeight: number };
+export type StreakChallenge = ChallengeBase & { kind: 'streak'; mode: 'consecutive' | 'total'; doneDates: string[] };
+export type AmountChallenge = ChallengeBase & { kind: 'amount'; unit: string; target: number; entries: Record<string, number> };
+export type Challenge = WeightChallenge | StreakChallenge | AmountChallenge;
+
 export type AppData = {
   profile: Profile;
   logs: Record<string, DayLog>;
   todos: Todo[];
   habits: Habit[];
   goals: Goals;
+  challenges: Challenge[];
 };

@@ -39,3 +39,8 @@ export function streak(doneDates: string[], today: string): number {
 }
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/** b - a (일 수) */
+export function dayDiff(a: string, b: string): number {
+  return Math.round((fromKey(b).getTime() - fromKey(a).getTime()) / 86400000);
+}

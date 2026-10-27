@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppData, DayLog, Goals, Habit, Profile, Todo } from './types';
+import { AppData, Challenge, DayLog, Goals, Habit, Profile, Todo } from './types';
 import { newId } from './date';
 
 const STORAGE_KEY = 'daily-app/v1';
 
 const defaultGoals: Goals = { waterCups: 8, steps: 8000, exerciseMin: 30, sleepHours: 7 };
-const emptyData: AppData = { profile: {}, logs: {}, todos: [], habits: [], goals: defaultGoals };
+const emptyData: AppData = { profile: {}, logs: {}, todos: [], habits: [], goals: defaultGoals, challenges: [] };
 export const emptyLog = (): DayLog => ({ water: 0, steps: 0, meals: [], exercises: [] });
 
 type Store = {
@@ -22,6 +22,9 @@ type Store = {
   addHabit: (name: string, emoji: string) => void;
   toggleHabit: (id: string, date: string) => void;
   deleteHabit: (id: string) => void;
+  addChallenge: (c: Challenge) => void;
+  updateChallenge: (id: string, fn: (c: Challenge) => Challenge) => void;
+  deleteChallenge: (id: string) => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -96,9 +99,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, habits: d.habits.filter((h) => h.id !== id) }));
   }, []);
 
+  const addChallenge = useCallback((c: Challenge) => setData((d) => ({ ...d, challenges: [...d.challenges, c] })), []);
+
+  const updateChallenge = useCallback((id: string, fn: (c: Challenge) => Challenge) => {
+    setData((d) => ({ ...d, challenges: d.challenges.map((c) => (c.id === id ? fn(c) : c)) }));
+  }, []);
+
+  const deleteChallenge = useCallback((id: string) => {
+    setData((d) => ({ ...d, challenges: d.challenges.filter((c) => c.id !== id) }));
+  }, []);
+
   return (
     <StoreContext.Provider
-      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit }}
+      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit, addChallenge, updateChallenge, deleteChallenge }}
     >
       {children}
     </StoreContext.Provider>
