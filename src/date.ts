@@ -1,0 +1,41 @@
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+export function toKey(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function fromKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export const todayKey = () => toKey(new Date());
+
+export function addDays(key: string, n: number): string {
+  const d = fromKey(key);
+  d.setDate(d.getDate() + n);
+  return toKey(d);
+}
+
+export function formatKey(key: string): string {
+  const d = fromKey(key);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+}
+
+export const weekdayOf = (key: string) => WEEKDAYS[fromKey(key).getDay()];
+
+/** 오늘(또는 오늘 미완료 시 어제)부터 거꾸로 이어진 연속 달성 일수 */
+export function streak(doneDates: string[], today: string): number {
+  const set = new Set(doneDates);
+  let cursor = set.has(today) ? today : addDays(today, -1);
+  let count = 0;
+  while (set.has(cursor)) {
+    count++;
+    cursor = addDays(cursor, -1);
+  }
+  return count;
+}
+
+export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
