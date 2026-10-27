@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
 import { addDays, formatKey, todayKey, weekdayOf } from '../date';
+import type { GradeInfo } from '../grade';
+
+/** 성적표 느낌을 낼 때만 쓰는 세리프 글꼴 */
+export const SERIF = Platform.select({ ios: 'Georgia', default: 'serif' });
 
 export function Screen({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -221,6 +226,16 @@ export function WeekDots({ doneDates, onToggle, minDate, color = colors.steps }:
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/** S~F 등급 배지 */
+export function GradeBadge({ grade, size = 26 }: { grade?: GradeInfo; size?: number }) {
+  if (!grade) return <Text style={{ width: size, textAlign: 'center', color: colors.sub }}>-</Text>;
+  return (
+    <View style={{ width: size, height: size, borderRadius: 7, backgroundColor: grade.color, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontWeight: '900', fontSize: size * 0.55, fontFamily: SERIF }}>{grade.grade}</Text>
     </View>
   );
 }

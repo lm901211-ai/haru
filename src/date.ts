@@ -71,3 +71,15 @@ export function shortDate(key: string): string {
   const d = fromKey(key);
   return `${d.getMonth() + 1}.${d.getDate()}`;
 }
+
+/** offset주 전(0=이번 주)의 월~일 날짜 7개 */
+export function weekDates(today: string, offset: number): string[] {
+  const start = addDays(startOfWeek(today), -7 * offset);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+/** offset달 전(0=이번 달)의 1일~말일 날짜 */
+export function monthDates(today: string, offset: number): string[] {
+  const start = addMonths(today, -offset);
+  return Array.from({ length: daysInMonth(start) }, (_, i) => addDays(start, i));
+}

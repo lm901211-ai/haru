@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import { Card, Chip, styles } from './ui';
-import { addDays, addMonths, dayDiff, daysInMonth, fromKey, shortDate, startOfWeek, todayKey, weekdayOf } from '../date';
+import { addDays, dayDiff, fromKey, monthDates, shortDate, startOfWeek, todayKey, weekDates, weekdayOf } from '../date';
 import { colors } from '../theme';
 
 const round = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
@@ -151,92 +151,6 @@ export function TrendChart({
   );
 }
 
-/** 관리도 (Control chart): 중심선(CL), 관리 상·하한(UCL/LCL), 목표 하한(LSL) */
-export function ControlChart({
-  points,
-  cl,
-  ucl,
-  lcl,
-  lsl,
-  height = 190,
-}: {
-  points: ChartPoint[];
-  cl: number;
-  ucl: number;
-  lcl: number;
-  lsl: number;
-  height?: number;
-}) {
-  const [width, onLayout] = useWidth();
-  const innerW = width - PAD.l - 34;
-  const innerH = height - PAD.t - PAD.b;
-  const n = points.length;
-  const x = (i: number) => PAD.l + (n === 1 ? innerW / 2 : (innerW * i) / (n - 1));
-  const y = (v: number) => PAD.t + innerH - (v / 100) * innerH;
-  const refLines = [
-    { v: ucl, label: 'UCL', color: colors.danger, dash: '4 3' },
-    { v: cl, label: 'CL', color: colors.primary, dash: undefined },
-    { v: lcl, label: 'LCL', color: colors.danger, dash: '4 3' },
-    { v: lsl, label: 'LSL', color: colors.exercise, dash: '2 3' },
-  ];
-
-  // 라벨끼리 10px 이상 떨어지도록 위에서부터 밀어냄
-  const labelY: Record<string, number> = {};
-  let lastY = -Infinity;
-  [...refLines].sort((a, b) => b.v - a.v).forEach((r) => {
-    const yy = Math.max(y(r.v) + 3, lastY + 10);
-    labelY[r.label] = yy;
-    lastY = yy;
-  });
-
-  return (
-    <View onLayout={onLayout} style={{ height }}>
-      {width > 0 && (
-        <Svg width={width} height={height}>
-          {/* 목표 하한 아래 영역 */}
-          <Rect x={PAD.l} y={y(lsl)} width={innerW} height={y(0) - y(lsl)} fill={colors.exercise} opacity={0.07} />
-          {[0, 50, 100].map((t) => (
-            <SvgText key={t} x={PAD.l - 6} y={y(t) + 4} fontSize={10} fill={colors.sub} textAnchor="end">
-              {t}
-            </SvgText>
-          ))}
-          {refLines.map((r) => (
-            <G key={r.label}>
-              <Line x1={PAD.l} x2={PAD.l + innerW} y1={y(r.v)} y2={y(r.v)} stroke={r.color} strokeWidth={r.label === 'CL' ? 1.5 : 1.2} strokeDasharray={r.dash} />
-              <SvgText x={PAD.l + innerW + 4} y={labelY[r.label]} fontSize={9} fill={r.color} fontWeight="bold">
-                {r.label}
-              </SvgText>
-            </G>
-          ))}
-          <Polyline
-            points={points
-              .map((p, i) => (p.value != null ? `${x(i)},${y(p.value)}` : null))
-              .filter(Boolean)
-              .join(' ')}
-            fill="none"
-            stroke={colors.text}
-            strokeOpacity={0.55}
-            strokeWidth={1.5}
-          />
-          {points.map((p, i) => {
-            if (p.value == null) return null;
-            const out = p.value > ucl || p.value < lcl;
-            const fill = out ? colors.danger : p.value < lsl ? colors.exercise : colors.primary;
-            return <Circle key={i} cx={x(i)} cy={y(p.value)} r={out ? 5 : 4} fill={fill} stroke="#fff" strokeWidth={1.5} />;
-          })}
-          {points.map((p, i) =>
-            n <= 7 || (n - 1 - i) % 2 === 0 ? (
-              <SvgText key={i} x={x(i)} y={height - 5} fontSize={10} fill={colors.sub} textAnchor="middle">
-                {p.label}
-              </SvgText>
-            ) : null,
-          )}
-        </Svg>
-      )}
-    </View>
-  );
-}
-
 type StatMode = 'amount' | 'level';
 type Period = 'week' | 'month' | 'quarter';
 type Entry = readonly [string, number];
@@ -264,16 +178,14 @@ function slopePerDay(es: readonly Entry[]): number | undefined {
 /** 기간 안의 날짜 목록과 그래프 점(일별 또는 주별) */
 function buildRange(period: Period, offset: number, today: string) {
   if (period === 'week') {
-    const start = addDays(startOfWeek(today), -7 * offset);
-    const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    const dates = weekDates(today, offset);
     const label = offset === 0 ? '이번 주' : offset === 1 ? '지난 주' : '';
     return { dates, buckets: dates.map((d) => ({ label: weekdayOf(d), dates: [d] })), title: `${label ? label + ' · ' : ''}${shortDate(dates[0])} ~ ${shortDate(dates[6])}`, prevName: '지난 주' };
   }
   if (period === 'month') {
-    const start = addMonths(today, -offset);
-    const dates = Array.from({ length: daysInMonth(start) }, (_, i) => addDays(start, i));
+    const dates = monthDates(today, offset);
     const day = (d: string) => fromKey(d).getDate();
-    const m = fromKey(start);
+    const m = fromKey(dates[0]);
     return {
       dates,
       buckets: dates.map((d) => ({ label: day(d) === 1 || day(d) % 5 === 0 ? String(day(d)) : '', dates: [d] })),

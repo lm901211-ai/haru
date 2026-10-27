@@ -1,13 +1,14 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { Card, Chip, NumberField, ProgressBar, styles } from './ui';
+import { Card, Chip, GradeBadge, NumberField, ProgressBar, styles } from './ui';
 import { useStore } from '../store';
 import { fetchWeather, Weather } from '../weather';
-import { bmiInfo, controlStats, cpkVerdict, dayScore, SCORE_LSL, scoreComment } from '../score';
+import { bmiInfo, dayScore, scoreComment } from '../score';
 import { challengeProgress } from '../challenges';
 import { dayActivities } from '../report';
-import { addDays, formatKey, fromKey, todayKey } from '../date';
-import { ControlChart, Ring } from './charts';
+import { periodReport } from '../grade';
+import { addDays, formatKey, todayKey } from '../date';
+import { Ring } from './charts';
 import { colors } from '../theme';
 
 export function WeatherCard() {
@@ -71,7 +72,7 @@ export function WeatherCard() {
   );
 }
 
-export function DailyReport() {
+export function DailyReport({ onOpenReport }: { onOpenReport: () => void }) {
   const { data } = useStore();
   const today = todayKey();
   // 어제 기록이 없으면(처음 쓰는 날 등) 오늘 리포트부터 보여줌
@@ -85,6 +86,7 @@ export function DailyReport() {
   const worst = ranked[ranked.length - 1];
   const fullCount = score.items.filter((i) => i.ratio >= 1).length;
   const activities = dayActivities(data, date);
+  const week = periodReport(data, 'week', 0, today);
 
   return (
     <Card
@@ -153,57 +155,23 @@ export function DailyReport() {
           )}
         </View>
       )}
-    </Card>
-  );
-}
-
-export function ScoreControlCard() {
-  const { data } = useStore();
-  const st = controlStats(data, todayKey(), 14);
-  const verdict = cpkVerdict(st);
-  const [help, setHelp] = useState(false);
-
-  const stats = [
-    { label: '평균 (CL)', value: st.n ? `${Math.round(st.mean)}점` : '-' },
-    { label: '편차 (σ)', value: st.n >= 2 ? `±${st.sigma.toFixed(1)}` : '-' },
-    { label: 'Cpk', value: st.cpk != null ? st.cpk.toFixed(2) : '-', color: verdict.color },
-    { label: `${SCORE_LSL}점 미만`, value: `${st.belowLsl}일`, color: st.belowLsl ? colors.exercise : undefined },
-  ];
-
-  return (
-    <Card title="📈 루틴 관리도 · 최근 14일" right={<Pressable onPress={() => setHelp(!help)} hitSlop={8}><Text style={{ color: colors.primary, fontWeight: '600' }}>{help ? '닫기' : '보는 법'}</Text></Pressable>}>
-      {st.n === 0 ? (
-        <Text style={[styles.empty, { paddingVertical: 30 }]}>며칠 기록이 쌓이면 관리도가 그려져요</Text>
-      ) : (
-        <ControlChart
-          points={st.points.map((p) => ({ label: String(fromKey(p.date).getDate()), value: p.value }))}
-          cl={st.mean}
-          ucl={st.ucl}
-          lcl={st.lcl}
-          lsl={SCORE_LSL}
-        />
-      )}
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {stats.map((s) => (
-          <View key={s.label} style={{ flex: 1, backgroundColor: colors.bg, borderRadius: 10, paddingVertical: 8, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: colors.sub }}>{s.label}</Text>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: s.color ?? colors.text }}>{s.value}</Text>
-          </View>
-        ))}
-      </View>
-      <Text style={{ fontWeight: '700', color: verdict.color }}>
-        루틴 안정도: {verdict.text}
-        {st.outOfControl > 0 ? <Text style={{ color: colors.danger }}>{`  · 관리 이탈 ${st.outOfControl}일`}</Text> : null}
-      </Text>
-      {help && (
-        <View style={{ gap: 3 }}>
-          <Text style={styles.muted}>· CL: 기간 평균 점수 / UCL·LCL: 평균 ± 3σ (평소 범위)</Text>
-          <Text style={styles.muted}>· σ: 하루하루 점수 차이(이동범위) 평균 ÷ 1.128 로 추정 (I-MR 관리도 방식)</Text>
-          <Text style={styles.muted}>· LSL: 목표 하한 {SCORE_LSL}점. 아래 주황 영역은 미달 구간</Text>
-          <Text style={styles.muted}>· Cpk = (평균 − {SCORE_LSL}) ÷ 3σ. 1.33↑ 매우 안정, 1.0↑ 안정, 1.0 미만이면 점수가 자주 {SCORE_LSL}점 아래로 떨어질 수 있어요</Text>
-          <Text style={styles.muted}>· 빨간 점: 평소 범위를 벗어난 날, 주황 점: {SCORE_LSL}점 미만인 날</Text>
+      <Pressable
+        onPress={onOpenReport}
+        style={({ pressed }) => [styles.row, { justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }, pressed && { opacity: 0.6 }]}
+      >
+        <View style={[styles.row, { gap: 8 }]}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>📋 이번 주 성적</Text>
+          {week.grade ? (
+            <>
+              <GradeBadge grade={week.grade} size={22} />
+              <Text style={{ fontSize: 13, color: colors.text }}>{week.score?.toFixed(1)}점</Text>
+            </>
+          ) : (
+            <Text style={styles.muted}>집계 전</Text>
+          )}
         </View>
-      )}
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>성적표 보기 ›</Text>
+      </Pressable>
     </Card>
   );
 }

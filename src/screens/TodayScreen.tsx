@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { formatKey, todayKey } from '../date';
 import { colors } from '../theme';
 import { TodoRow } from './TodoScreen';
-import { ChallengeSummary, DailyReport, QuickRecordCard, ScoreControlCard, WeatherCard } from '../components/home';
+import { ChallengeSummary, DailyReport, QuickRecordCard, WeatherCard } from '../components/home';
 import { Tab } from '../tabs';
 import { SettingsButton } from '../components/Settings';
 
@@ -33,8 +33,7 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
       <Text style={[styles.muted, { marginTop: -8, fontSize: 15 }]}>{formatKey(today)}</Text>
 
       <WeatherCard />
-      <DailyReport />
-      <ScoreControlCard />
+      <DailyReport onOpenReport={() => goTo('report')} />
       <ChallengeSummary onOpen={() => goTo('goal')} />
 
       <QuickRecordCard

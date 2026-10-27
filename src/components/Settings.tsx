@@ -103,7 +103,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <Text style={styles.muted}>내보내기를 누르면 구글 드라이브, 카카오톡 ‘나와의 채팅’, 메일 등으로 저장할 수 있어요.</Text>
         </Card>
 
-        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.0</Text>
+        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.1</Text>
       </ScrollView>
     </View>
   );
