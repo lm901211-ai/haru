@@ -13,6 +13,7 @@ import GoalScreen from './src/screens/GoalScreen';
 import TodoScreen from './src/screens/TodoScreen';
 import HabitScreen from './src/screens/HabitScreen';
 import ReportScreen from './src/screens/ReportScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
 
 function Main() {
   const { loaded } = useStore();
@@ -57,6 +58,7 @@ function Main() {
     <View style={styles.fill}>
       <View style={styles.fill}>
         {tab === 'today' && <TodayScreen goTo={setTab} />}
+        {tab === 'calendar' && <CalendarScreen />}
         {tab === 'exercise' && <ExerciseScreen />}
         {tab === 'diet' && <DietScreen />}
         {tab === 'body' && <BodyScreen />}
@@ -66,7 +68,7 @@ function Main() {
         {tab === 'report' && <ReportScreen />}
       </View>
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-        {/* 홈 양쪽 탭 개수가 달라도(3 | 4) 홈 버튼이 정가운데에 오도록 좌우를 같은 폭으로 나눔 */}
+        {/* 홈 버튼이 정가운데에 오도록 좌우 탭 묶음을 같은 폭으로 나눔 */}
         <View style={styles.tabGroup}>{left.map(renderTab)}</View>
         <Pressable onPress={() => setTab(home.key)} style={styles.homeSlot}>
           <View style={[styles.homeButton, tab === home.key && styles.homeButtonActive]}>

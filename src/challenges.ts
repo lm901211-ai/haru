@@ -1,5 +1,5 @@
 import { AppData, Challenge, StreakChallenge, WeightChallenge } from './types';
-import { addDays, dayDiff, streak } from './date';
+import { addDays, dayDiff, formatKey, shortDate, streak } from './date';
 
 export type Progress = {
   ratio: number; // 0~1 달성도
@@ -17,6 +17,9 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const signed = (n: number) => (n > 0 ? `+${round1(n)}` : `${round1(n)}`);
 
 export const termOf = (days: number) => (days <= 30 ? '단기' : '장기');
+
+/** 목표 기간의 마지막 날 (시작일 포함 days일) */
+export const challengeEnd = (c: Challenge) => addDays(c.startDate, c.days - 1);
 
 /** 기간형 목표의 경과 정보 */
 function period(c: Challenge, today: string) {
@@ -148,7 +151,28 @@ function streakProgress(c: StreakChallenge, today: string): Progress {
   };
 }
 
+/** 아직 시작하지 않은 목표 (시작일을 미래로 정한 경우) */
+function upcomingProgress(c: Challenge, today: string): Progress {
+  const n = dayDiff(today, c.startDate);
+  const details = [`${formatKey(c.startDate)} 시작 · ${formatKey(challengeEnd(c))}까지 ${c.days}일`];
+  if (c.kind === 'weight') {
+    const weekly = Math.abs(c.targetWeight - c.startWeight) / (c.days / 7);
+    details.push(`시작 ${c.startWeight}kg → 목표 ${c.targetWeight}kg · 주당 ${round2(weekly)}kg ${c.targetWeight < c.startWeight ? '감량' : '증량'}`);
+  }
+  if (c.kind === 'amount') details.push(`목표 ${c.target}${c.unit}`);
+  if (c.kind === 'streak') details.push(c.mode === 'consecutive' ? `${c.days}일 연속 도전` : `${c.days}일 누적 도전`);
+  return {
+    ratio: 0,
+    status: 'none',
+    dayLabel: `시작 D-${n}`,
+    term: termOf(c.days),
+    summary: `${shortDate(c.startDate)}부터 ${c.days}일 · ${n}일 뒤 시작`,
+    details,
+  };
+}
+
 export function challengeProgress(data: AppData, c: Challenge, today: string): Progress {
+  if (today < c.startDate) return upcomingProgress(c, today);
   if (c.kind === 'weight') return weightProgress(data, c, today);
   if (c.kind === 'streak') return streakProgress(c, today);
 

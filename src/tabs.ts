@@ -1,7 +1,8 @@
-export type Tab = 'exercise' | 'diet' | 'body' | 'today' | 'goal' | 'todo' | 'habit' | 'report';
+export type Tab = 'calendar' | 'exercise' | 'diet' | 'body' | 'today' | 'goal' | 'todo' | 'habit' | 'report';
 
-// 홈을 가운데에 두고 왼쪽은 신체(운동·식단·체중), 오른쪽은 목표·루틴·리포트
+// 홈을 가운데에 두고 왼쪽은 달력·신체(운동·식단·체중), 오른쪽은 목표·루틴·리포트 (4 | 홈 | 4)
 export const TABS: { key: Tab; label: string; icon: string }[] = [
+  { key: 'calendar', label: '달력', icon: '📅' },
   { key: 'exercise', label: '운동', icon: '🏃' },
   { key: 'diet', label: '식단', icon: '🍚' },
   { key: 'body', label: '체중', icon: '⚖️' },

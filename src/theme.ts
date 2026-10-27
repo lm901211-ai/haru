@@ -12,3 +12,6 @@ export const colors = {
   danger: '#E5484D',
   star: '#F5B400',
 };
+
+/** 목표 기간을 달력에 칠하는 형광펜 색 (목표 순서대로 돌려 씀) */
+export const HIGHLIGHTERS = ['#FFE14D', '#7EE0B5', '#FF9CC2', '#8CC8FF', '#C9A7FF'];

@@ -3,7 +3,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { Button, Card, Chip, Input, NumberField, ProgressBar, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { challengeProgress, currentWeight, STATUS_TEXT, termOf } from '../challenges';
-import { newId, todayKey } from '../date';
+import { addDays, addMonths, formatKey, fromKey, newId, startOfWeek, todayKey } from '../date';
 import { colors } from '../theme';
 import { Challenge } from '../types';
 
@@ -93,7 +93,10 @@ export default function GoalScreen() {
                 onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))}
               />
             )}
-            {c.kind === 'streak' && (
+            {today < c.startDate && c.kind !== 'weight' && (
+              <Text style={[styles.muted, { textAlign: 'center' }]}>{formatKey(c.startDate)}부터 기록할 수 있어요</Text>
+            )}
+            {c.kind === 'streak' && today >= c.startDate && (
               <>
                 <WeekDots doneDates={c.doneDates} minDate={c.startDate} onToggle={(d) => toggleDate(c.id, d)} />
                 <Button
@@ -105,7 +108,7 @@ export default function GoalScreen() {
                 <Text style={[styles.muted, { fontSize: 12, textAlign: 'center' }]}>깜빡한 날은 위 동그라미를 눌러 체크할 수 있어요</Text>
               </>
             )}
-            {c.kind === 'amount' && <AmountInput unit={c.unit} onAdd={(n) => updateChallenge(c.id, (x) => (x.kind === 'amount' ? { ...x, entries: { ...x.entries, [today]: Math.max(0, (x.entries[today] ?? 0) + n) } } : x))} />}
+            {c.kind === 'amount' && today >= c.startDate && <AmountInput unit={c.unit} onAdd={(n) => updateChallenge(c.id, (x) => (x.kind === 'amount' ? { ...x, entries: { ...x.entries, [today]: Math.max(0, (x.entries[today] ?? 0) + n) } } : x))} />}
           </Card>
         );
       })}
@@ -124,6 +127,37 @@ export default function GoalScreen() {
         />
       )}
     </Screen>
+  );
+}
+
+/** 오늘부터 고를 수 있는 시작일 (‹ › 로 하루씩, 빠른 선택 칩) */
+function StartDatePicker({ value, onChange }: { value: string; onChange: (d: string) => void }) {
+  const today = todayKey();
+  const nextMonday = addDays(startOfWeek(today), 7);
+  const nextMonthFirst = addMonths(today, 1);
+  const quick: [string, string][] = [
+    ['오늘', today],
+    ['내일', addDays(today, 1)],
+    ['다음 주 월요일', nextMonday],
+    [`${fromKey(nextMonthFirst).getMonth() + 1}월 1일`, nextMonthFirst],
+  ];
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6 }]}>
+        <Pressable onPress={() => onChange(addDays(value, -1))} disabled={value <= today} hitSlop={10}>
+          <Text style={{ fontSize: 24, color: value <= today ? colors.line : colors.primary }}>‹</Text>
+        </Pressable>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{formatKey(value)}</Text>
+        <Pressable onPress={() => onChange(addDays(value, 1))} hitSlop={10}>
+          <Text style={{ fontSize: 24, color: colors.primary }}>›</Text>
+        </Pressable>
+      </View>
+      <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        {quick.map(([label, d]) => (
+          <Chip key={label} label={label} active={value === d} onPress={() => onChange(d)} />
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -153,6 +187,7 @@ function NewChallengeForm({ defaultWeight, onCreate, onCancel }: { defaultWeight
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('🎯');
   const [days, setDays] = useState('100');
+  const [startDate, setStartDate] = useState(todayKey());
   const [startWeight, setStartWeight] = useState(defaultWeight != null ? String(defaultWeight) : '');
   const [targetWeight, setTargetWeight] = useState('');
   const [weekly, setWeekly] = useState('');
@@ -182,7 +217,7 @@ function NewChallengeForm({ defaultWeight, onCreate, onCancel }: { defaultWeight
   const create = () => {
     if (!title.trim()) return Alert.alert('목표 이름을 입력해 주세요.');
     if (!(nDays > 0)) return Alert.alert('기간(일)을 입력해 주세요.');
-    const base = { id: newId(), title: title.trim(), emoji, startDate: todayKey(), days: nDays };
+    const base = { id: newId(), title: title.trim(), emoji, startDate, days: nDays };
     if (kind === 'weight') {
       if (!(sw > 0) || !Number.isFinite(tw) || tw <= 0) return Alert.alert('시작 체중과, 목표 체중 또는 주당 목표를 입력해 주세요.');
       return onCreate({ ...base, kind, startWeight: sw, targetWeight: Math.round(tw * 10) / 10 });
@@ -224,6 +259,14 @@ function NewChallengeForm({ defaultWeight, onCreate, onCancel }: { defaultWeight
         <Text style={styles.unit}>일</Text>
         {nDays > 0 && <Text style={{ color: colors.sub }}>{termOf(nDays)} 목표</Text>}
       </View>
+
+      <Label>시작일</Label>
+      <StartDatePicker value={startDate} onChange={setStartDate} />
+      {nDays > 0 && (
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>
+          → {formatKey(startDate)} ~ {formatKey(addDays(startDate, nDays - 1))} ({nDays}일)
+        </Text>
+      )}
 
       {kind === 'weight' && (
         <>

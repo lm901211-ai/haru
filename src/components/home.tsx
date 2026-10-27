@@ -270,7 +270,7 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
                 {c.emoji} {c.title}
               </Text>
               <Text style={styles.muted}>{p.dayLabel}</Text>
-              {c.kind === 'streak' && (
+              {c.kind === 'streak' && today >= c.startDate && (
                 <Pressable
                   hitSlop={6}
                   onPress={() =>
