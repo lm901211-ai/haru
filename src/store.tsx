@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppData, DayLog, Goals, Habit, Todo } from './types';
+import { AppData, DayLog, Goals, Habit, Profile, Todo } from './types';
 import { newId } from './date';
 
 const STORAGE_KEY = 'daily-app/v1';
 
 const defaultGoals: Goals = { waterCups: 8, steps: 8000, exerciseMin: 30, sleepHours: 7 };
-const emptyData: AppData = { logs: {}, todos: [], habits: [], goals: defaultGoals };
+const emptyData: AppData = { profile: {}, logs: {}, todos: [], habits: [], goals: defaultGoals };
 export const emptyLog = (): DayLog => ({ water: 0, steps: 0, meals: [], exercises: [] });
 
 type Store = {
@@ -15,6 +15,7 @@ type Store = {
   getLog: (date: string) => DayLog;
   updateLog: (date: string, fn: (log: DayLog) => DayLog) => void;
   setGoals: (goals: Goals) => void;
+  setProfile: (profile: Profile) => void;
   addTodo: (title: string, date: string) => void;
   updateTodo: (id: string, patch: Partial<Todo>) => void;
   deleteTodo: (id: string) => void;
@@ -60,6 +61,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setGoals = useCallback((goals: Goals) => setData((d) => ({ ...d, goals })), []);
 
+  const setProfile = useCallback((profile: Profile) => setData((d) => ({ ...d, profile })), []);
+
   const addTodo = useCallback((title: string, date: string) => {
     const todo: Todo = { id: newId(), title, date, done: false, important: false };
     setData((d) => ({ ...d, todos: [...d.todos, todo] }));
@@ -95,7 +98,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StoreContext.Provider
-      value={{ data, loaded, getLog, updateLog, setGoals, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit }}
+      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit }}
     >
       {children}
     </StoreContext.Provider>

@@ -34,7 +34,12 @@ export type Goals = {
   sleepHours: number;
 };
 
+export type Profile = {
+  heightCm?: number;
+};
+
 export type AppData = {
+  profile: Profile;
   logs: Record<string, DayLog>;
   todos: Todo[];
   habits: Habit[];

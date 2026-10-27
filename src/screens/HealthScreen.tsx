@@ -6,6 +6,7 @@ import { useStore } from '../store';
 import { fromKey, newId, todayKey } from '../date';
 import { colors } from '../theme';
 import { MealType } from '../types';
+import { bmiInfo } from '../score';
 
 const MEAL_TYPES: MealType[] = ['아침', '점심', '저녁', '간식'];
 const CUP_ML = 250;
@@ -26,7 +27,7 @@ async function readDeviceSteps(date: string): Promise<number> {
 }
 
 export default function HealthScreen() {
-  const { data, getLog, updateLog, setGoals } = useStore();
+  const { data, getLog, updateLog, setGoals, setProfile } = useStore();
   const [date, setDate] = useState(todayKey());
   const log = getLog(date);
   const goals = data.goals;
@@ -139,6 +140,20 @@ export default function HealthScreen() {
         <NumberField decimal value={log.sleepHours} placeholder="예: 7.5" unit="시간" onCommit={(v) => update((l) => ({ ...l, sleepHours: v }))} />
         <Text style={styles.muted}>체중</Text>
         <NumberField decimal value={log.weight} placeholder="예: 65.2" unit="kg" onCommit={(v) => update((l) => ({ ...l, weight: v }))} />
+        {log.weight != null && data.profile.heightCm ? (
+          <Text style={styles.muted}>
+            BMI {bmiInfo(log.weight, data.profile.heightCm).bmi.toFixed(1)} · {bmiInfo(log.weight, data.profile.heightCm).label}
+          </Text>
+        ) : null}
+      </Card>
+
+      <Card title="👤 내 정보">
+        <View style={styles.row}>
+          <Text style={{ width: 90, color: colors.text }}>키</Text>
+          <View style={{ flex: 1 }}>
+            <NumberField decimal value={data.profile.heightCm} placeholder="예: 170" unit="cm" onCommit={(v) => setProfile({ ...data.profile, heightCm: v })} />
+          </View>
+        </View>
       </Card>
 
       <Card title="🎯 하루 목표" right={<Button label={showGoals ? '닫기' : '수정'} small outline onPress={() => setShowGoals((s) => !s)} />}>
