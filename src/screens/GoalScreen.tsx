@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
-import { Button, Card, Chip, Input, NumberField, ProgressBar, Screen, styles } from '../components/ui';
+import { Button, Card, Chip, Input, NumberField, ProgressBar, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { challengeProgress, currentWeight, STATUS_TEXT, termOf } from '../challenges';
 import { newId, todayKey } from '../date';
@@ -22,6 +22,7 @@ const TEMPLATES: Template[] = [
   { label: '운동 30일 챌린지', kind: 'streak', title: '운동 30일 챌린지', emoji: '🏋️', days: '30', mode: 'total' },
   { label: '1년 책 12권', kind: 'amount', title: '1년에 책 12권 읽기', emoji: '📚', days: '365', unit: '권', target: '12' },
   { label: '영단어 1000개', kind: 'amount', title: '영단어 1000개 외우기', emoji: '🔤', days: '60', unit: '개', target: '1000' },
+  { label: '공부 100시간', kind: 'amount', title: '3개월 공부 100시간', emoji: '✍️', days: '90', unit: '시간', target: '100' },
 ];
 
 const EMOJIS = ['🎯', '🥗', '🇺🇸', '📚', '🏋️', '🔤', '✍️', '🧘', '💰', '🎹'];
@@ -30,6 +31,13 @@ export default function GoalScreen() {
   const { data, addChallenge, updateChallenge, deleteChallenge, updateLog } = useStore();
   const today = todayKey();
   const [showForm, setShowForm] = useState(data.challenges.length === 0);
+
+  const toggleDate = (id: string, date: string) =>
+    updateChallenge(id, (x) => {
+      if (x.kind !== 'streak') return x;
+      const has = x.doneDates.includes(date);
+      return { ...x, doneDates: has ? x.doneDates.filter((d) => d !== date) : [...x.doneDates, date] };
+    });
 
   const confirmDelete = (c: Challenge) =>
     Alert.alert('목표 삭제', `"${c.title}" 목표를 삭제할까요?`, [
@@ -86,18 +94,16 @@ export default function GoalScreen() {
               />
             )}
             {c.kind === 'streak' && (
-              <Button
-                label={c.doneDates.includes(today) ? '✅ 오늘 완료! (취소하려면 탭)' : '오늘 했어요'}
-                outline={c.doneDates.includes(today)}
-                color={colors.steps}
-                onPress={() =>
-                  updateChallenge(c.id, (x) => {
-                    if (x.kind !== 'streak') return x;
-                    const has = x.doneDates.includes(today);
-                    return { ...x, doneDates: has ? x.doneDates.filter((d) => d !== today) : [...x.doneDates, today] };
-                  })
-                }
-              />
+              <>
+                <WeekDots doneDates={c.doneDates} minDate={c.startDate} onToggle={(d) => toggleDate(c.id, d)} />
+                <Button
+                  label={c.doneDates.includes(today) ? '✅ 오늘 완료! (취소하려면 탭)' : '오늘 했어요'}
+                  outline={c.doneDates.includes(today)}
+                  color={colors.steps}
+                  onPress={() => toggleDate(c.id, today)}
+                />
+                <Text style={[styles.muted, { fontSize: 12, textAlign: 'center' }]}>깜빡한 날은 위 동그라미를 눌러 체크할 수 있어요</Text>
+              </>
             )}
             {c.kind === 'amount' && <AmountInput unit={c.unit} onAdd={(n) => updateChallenge(c.id, (x) => (x.kind === 'amount' ? { ...x, entries: { ...x.entries, [today]: Math.max(0, (x.entries[today] ?? 0) + n) } } : x))} />}
           </Card>
@@ -119,6 +125,10 @@ export default function GoalScreen() {
       )}
     </Screen>
   );
+}
+
+function Label({ children }: { children: string }) {
+  return <Text style={[styles.muted, { marginTop: 4 }]}>{children}</Text>;
 }
 
 function AmountInput({ unit, onAdd }: { unit: string; onAdd: (n: number) => void }) {
@@ -182,8 +192,6 @@ function NewChallengeForm({ defaultWeight, onCreate, onCancel }: { defaultWeight
     if (!(t > 0) || !unit.trim()) return Alert.alert('목표 수치와 단위를 입력해 주세요.');
     onCreate({ ...base, kind, unit: unit.trim(), target: t, entries: {} });
   };
-
-  const Label = ({ children }: { children: string }) => <Text style={[styles.muted, { marginTop: 4 }]}>{children}</Text>;
 
   return (
     <Card title="새 목표 만들기" right={onCancel ? <Button label="닫기" small outline onPress={onCancel} /> : undefined}>

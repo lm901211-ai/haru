@@ -7,6 +7,7 @@ export type Progress = {
   status: 'done' | 'ahead' | 'behind' | 'none';
   dayLabel: string;
   term: '단기' | '장기';
+  summary: string; // 홈 화면용 한 줄 요약
   details: string[];
 };
 
@@ -39,6 +40,17 @@ function weightRecords(data: AppData, from: string): [string, number][] {
     .map((d) => [d, data.logs[d].weight as number]);
 }
 
+/** 계획대로라면 그 날짜에 도달해 있어야 할 체중 (시작일 → 종료일 직선) */
+export function plannedWeight(c: WeightChallenge, date: string): number | undefined {
+  const day = dayDiff(c.startDate, date);
+  if (day < 0 || day > c.days) return undefined;
+  return c.startWeight + (c.targetWeight - c.startWeight) * (day / c.days);
+}
+
+export function activeWeightChallenge(data: AppData, today: string): WeightChallenge | undefined {
+  return data.challenges.find((c): c is WeightChallenge => c.kind === 'weight' && dayDiff(c.startDate, today) < c.days);
+}
+
 export function currentWeight(data: AppData, c: WeightChallenge): number {
   const recs = weightRecords(data, c.startDate);
   return recs.length ? recs[recs.length - 1][1] : c.startWeight;
@@ -52,19 +64,28 @@ function weightProgress(data: AppData, c: WeightChallenge, today: string): Progr
   const ratio = total === 0 ? 1 : clamp((current - c.startWeight) / total);
   const weekly = Math.abs(total) / (c.days / 7);
 
+  const arrow = lose ? '↓' : '↑';
   const details = [
     `시작 ${c.startWeight}kg → 목표 ${c.targetWeight}kg · 현재 ${current}kg`,
     `주당 목표: ${round2(weekly)}kg ${lose ? '감량' : '증량'}`,
   ];
 
-  // 최근 1주 변화: 마지막 기록과 그 7일 전(또는 그 이전) 기록 비교
+  // 최근 페이스: 마지막 기록과 그 7일 이상 전 기록을 비교해 주당 변화량으로 환산
   const recs = weightRecords(data, addDays(c.startDate, -7));
   if (recs.length >= 2) {
     const [lastDate, lastKg] = recs[recs.length - 1];
     const before = [...recs].reverse().find(([d]) => d <= addDays(lastDate, -7)) ?? recs[0];
-    const change = lastKg - before[1];
-    const ok = lose ? change <= -weekly : change >= weekly;
-    details.push(`최근 ${Math.max(dayDiff(before[0], lastDate), 1)}일 변화: ${signed(change)}kg ${ok ? '✅ 목표 페이스' : '⚠️ 목표보다 느려요'}`);
+    const span = Math.max(dayDiff(before[0], lastDate), 1);
+    const perWeek = ((lastKg - before[1]) / span) * 7;
+    const ok = lose ? perWeek <= -weekly : perWeek >= weekly;
+    details.push(`최근 ${span}일: ${signed(lastKg - before[1])}kg (주당 ${signed(perWeek)}kg) ${ok ? '✅ 목표 페이스' : '⚠️ 목표보다 느려요'}`);
+  }
+
+  const planned = plannedWeight(c, today);
+  if (planned != null && ratio < 1) {
+    const gap = current - planned;
+    const ahead = lose ? gap <= 0 : gap >= 0;
+    details.push(`계획상 오늘 ${round1(planned)}kg → ${ahead ? '계획보다 앞서요 👍' : `계획보다 ${round1(Math.abs(gap))}kg 뒤처져요`}`);
   }
 
   const remain = c.targetWeight - current;
@@ -72,7 +93,15 @@ function weightProgress(data: AppData, c: WeightChallenge, today: string): Progr
   if (ratio < 1 && weeksLeft > 0) {
     details.push(`남은 ${round1(Math.abs(remain))}kg · 앞으로 주당 ${round2(Math.abs(remain) / weeksLeft)}kg 필요`);
   }
-  return { ratio, expected: p.expected, status: statusOf(ratio, p.expected), dayLabel: p.dayLabel, term: termOf(c.days), details };
+  return {
+    ratio,
+    expected: p.expected,
+    status: statusOf(ratio, p.expected),
+    dayLabel: p.dayLabel,
+    term: termOf(c.days),
+    summary: `현재 ${current}kg → 목표 ${c.targetWeight}kg · 주당 ${round2(weekly)}kg${arrow}`,
+    details,
+  };
 }
 
 function bestStreak(dates: string[]): number {
@@ -100,7 +129,8 @@ function streakProgress(c: StreakChallenge, today: string): Progress {
       if (cur === 0 && best > 0) details.push('연속 기록이 끊겼어요. 오늘부터 다시 시작해요! 💪');
       else details.push(doneToday ? `✅ 오늘 완료 · ${c.days - cur}일 남았어요` : '⏳ 오늘 아직 안 했어요');
     }
-    return { ratio, status: ratio >= 1 ? 'done' : 'none', dayLabel: `${cur}일 연속`, term, details };
+    const summary = ratio >= 1 ? `${c.days}일 연속 달성!` : `${cur}/${c.days}일 연속 · ${doneToday ? '오늘 완료 ✅' : '오늘 아직 ⏳'}`;
+    return { ratio, status: ratio >= 1 ? 'done' : 'none', dayLabel: `${cur}일 연속`, term, summary, details };
   }
 
   const ratio = clamp(dates.length / c.days);
@@ -110,6 +140,7 @@ function streakProgress(c: StreakChallenge, today: string): Progress {
     status: ratio >= 1 ? 'done' : 'none',
     dayLabel: `누적 ${dates.length}일`,
     term,
+    summary: `${dates.length}/${c.days}일 · ${doneToday ? '오늘 완료 ✅' : '오늘 아직 ⏳'}`,
     details: [
       `누적 ${dates.length}일 / 목표 ${c.days}일 · 최고 연속 ${best}일`,
       `시작 후 ${sinceStart}일 중 ${dates.length}일 실천` + (doneToday ? ' · ✅ 오늘 완료' : ''),
@@ -139,7 +170,8 @@ export function challengeProgress(data: AppData, c: Challenge, today: string): P
     }
   }
   if (c.entries[today]) details.push(`오늘 +${c.entries[today]}${c.unit}`);
-  return { ratio, expected: p.expected, status: statusOf(ratio, p.expected), dayLabel: p.dayLabel, term: termOf(c.days), details };
+  const summary = `${round1(sum)}/${c.target}${c.unit}` + (ratio < 1 ? ` · 지금쯤 ${round1(c.target * p.expected)}${c.unit}이면 순조` : '');
+  return { ratio, expected: p.expected, status: statusOf(ratio, p.expected), dayLabel: p.dayLabel, term: termOf(c.days), summary, details };
 }
 
 export const STATUS_TEXT: Record<Progress['status'], string> = {

@@ -4,8 +4,9 @@ import { useStore } from '../store';
 import { formatKey, todayKey } from '../date';
 import { colors } from '../theme';
 import { TodoRow } from './TodoScreen';
-import { ChallengeSummary, DailyReport, ScoreControlCard, WeatherCard, WeightCard } from '../components/home';
+import { ChallengeSummary, DailyReport, QuickRecordCard, ScoreControlCard, WeatherCard } from '../components/home';
 import { Tab } from '../tabs';
+import { SettingsButton } from '../components/Settings';
 
 function greeting() {
   const h = new Date().getHours();
@@ -16,9 +17,8 @@ function greeting() {
 }
 
 export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
-  const { data, getLog, updateLog, updateTodo, toggleHabit } = useStore();
+  const { data, updateTodo, toggleHabit } = useStore();
   const today = todayKey();
-  const log = getLog(today);
   const todos = data.todos.filter((t) => t.date === today).sort((a, b) => Number(a.done) - Number(b.done) || Number(b.important) - Number(a.important));
   const habitsDone = data.habits.filter((h) => h.doneDates.includes(today)).length;
 
@@ -29,7 +29,7 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
   );
 
   return (
-    <Screen title={greeting()}>
+    <Screen title={greeting()} right={<SettingsButton />}>
       <Text style={[styles.muted, { marginTop: -8, fontSize: 15 }]}>{formatKey(today)}</Text>
 
       <WeatherCard />
@@ -37,22 +37,15 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
       <ScoreControlCard />
       <ChallengeSummary onOpen={() => goTo('goal')} />
 
-      <Card title="✏️ 빠른 기록">
-        <View style={styles.row}>
-          <Pressable
-            onPress={() => updateLog(today, (l) => ({ ...l, water: l.water + 1 }))}
-            style={({ pressed }) => [{ flex: 1, backgroundColor: '#E8F6FD', borderRadius: 10, padding: 10, alignItems: 'center' }, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={{ color: colors.water, fontWeight: '700' }}>💧 물 한 잔 ({log.water}/{data.goals.waterCups})</Text>
-          </Pressable>
-        </View>
-        <View style={[styles.row, { justifyContent: 'space-around' }]}>
-          {link('운동 기록', 'exercise')}
-          {link('식사 기록', 'diet')}
-          {link('수면 기록', 'body')}
-        </View>
-      </Card>
-      <WeightCard />
+      <QuickRecordCard
+        links={
+          <>
+            {link('운동 기록', 'exercise')}
+            {link('식사 기록', 'diet')}
+            {link('수면 기록', 'body')}
+          </>
+        }
+      />
 
       <Card title="오늘 할 일" right={link('전체', 'todo')}>
         {todos.length === 0 && <Empty text="오늘 할 일이 없어요" />}

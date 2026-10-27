@@ -6,6 +6,7 @@ import { GoalField } from '../components/GoalField';
 import { useStore } from '../store';
 import { todayKey } from '../date';
 import { bmiInfo } from '../score';
+import { activeWeightChallenge, plannedWeight } from '../challenges';
 import { colors } from '../theme';
 
 export default function BodyScreen() {
@@ -15,13 +16,14 @@ export default function BodyScreen() {
   const height = data.profile.heightCm;
   const update = (fn: Parameters<typeof updateLog>[1]) => updateLog(date, fn);
   const bmi = log.weight != null && height ? bmiInfo(log.weight, height) : null;
+  const diet = activeWeightChallenge(data, todayKey());
 
   return (
     <Screen title="체중 · 신체">
       <DateNav date={date} onChange={setDate} />
 
       <Card title="⚖️ 체중">
-        <NumberField decimal value={log.weight} placeholder="몸무게 (예: 65.2)" unit="kg" onCommit={(v) => update((l) => ({ ...l, weight: v }))} />
+        <NumberField key={`w${date}`} decimal value={log.weight} placeholder="몸무게 (예: 65.2)" unit="kg" onCommit={(v) => update((l) => ({ ...l, weight: v }))} />
         {bmi && (
           <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }]}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>BMI {bmi.bmi.toFixed(1)}</Text>
@@ -30,10 +32,19 @@ export default function BodyScreen() {
         )}
       </Card>
 
-      <TrendCard title="체중 변화" unit="kg" color={colors.primary} kind="line" mode="level" decimals={1} getValue={(d) => data.logs[d]?.weight} />
+      <TrendCard
+        title="체중 변화"
+        unit="kg"
+        color={colors.primary}
+        kind="line"
+        mode="level"
+        decimals={1}
+        getValue={(d) => data.logs[d]?.weight}
+        target={diet && { label: '계획 페이스', at: (d) => plannedWeight(diet, d), lowerIsBetter: diet.targetWeight < diet.startWeight }}
+      />
 
       <Card title="😴 수면" right={<GoalField k="sleepHours" unit="시간" decimal />}>
-        <NumberField decimal value={log.sleepHours} placeholder="수면 시간 (예: 7.5)" unit="시간" onCommit={(v) => update((l) => ({ ...l, sleepHours: v }))} />
+        <NumberField key={`s${date}`} decimal value={log.sleepHours} placeholder="수면 시간 (예: 7.5)" unit="시간" onCommit={(v) => update((l) => ({ ...l, sleepHours: v }))} />
       </Card>
 
       <TrendCard title="수면 시간 추이" unit="시간" color={colors.sleep} kind="bar" mode="amount" decimals={1} goal={data.goals.sleepHours} getValue={(d) => data.logs[d]?.sleepHours} />

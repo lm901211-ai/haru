@@ -44,3 +44,30 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 export function dayDiff(a: string, b: string): number {
   return Math.round((fromKey(b).getTime() - fromKey(a).getTime()) / 86400000);
 }
+
+/** 그 주의 월요일 */
+export function startOfWeek(key: string): string {
+  const day = fromKey(key).getDay(); // 0=일
+  return addDays(key, -((day + 6) % 7));
+}
+
+export function startOfMonth(key: string): string {
+  return key.slice(0, 8) + '01';
+}
+
+export function addMonths(key: string, n: number): string {
+  const d = fromKey(startOfMonth(key));
+  d.setMonth(d.getMonth() + n);
+  return toKey(d);
+}
+
+export function daysInMonth(key: string): number {
+  const d = fromKey(startOfMonth(key));
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+/** 10.27 형식 */
+export function shortDate(key: string): string {
+  const d = fromKey(key);
+  return `${d.getMonth() + 1}.${d.getDate()}`;
+}

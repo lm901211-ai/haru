@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
-import { Button, Card, Chip, Empty, Input, Screen, styles } from '../components/ui';
+import { Button, Card, Chip, Empty, Input, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
-import { addDays, streak, todayKey, weekdayOf } from '../date';
+import { streak, todayKey } from '../date';
 import { colors } from '../theme';
 
 const EMOJIS = ['✅', '📖', '🧘', '💊', '🏋️', '🥗', '🌅', '🚭', '✍️', '🧹'];
@@ -13,7 +13,6 @@ export default function HabitScreen() {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState(EMOJIS[0]);
   const today = todayKey();
-  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
 
   const submit = (habitName = name) => {
     if (!habitName.trim()) return;
@@ -50,30 +49,7 @@ export default function HabitScreen() {
               </Text>
               <Text style={{ color: s > 0 ? colors.exercise : colors.sub, fontWeight: '700' }}>🔥 {s}일 연속</Text>
             </Pressable>
-            <View style={[styles.row, { justifyContent: 'space-between' }]}>
-              {week.map((d) => {
-                const done = h.doneDates.includes(d);
-                return (
-                  <Pressable key={d} onPress={() => toggleHabit(h.id, d)} style={{ alignItems: 'center', gap: 4 }} hitSlop={4}>
-                    <Text style={[styles.muted, d === today && { color: colors.primary, fontWeight: '700' }]}>{weekdayOf(d)}</Text>
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: done ? colors.steps : colors.bg,
-                        borderWidth: d === today ? 2 : 0,
-                        borderColor: colors.primary,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {done && <Text style={{ color: '#fff', fontWeight: '800' }}>✓</Text>}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <WeekDots doneDates={h.doneDates} onToggle={(d) => toggleHabit(h.id, d)} />
             <Button
               label={doneToday ? '오늘 완료! (취소하려면 탭)' : '오늘 완료하기'}
               color={colors.steps}

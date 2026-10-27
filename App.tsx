@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StoreProvider, useStore } from './src/store';
@@ -17,6 +17,16 @@ function Main() {
   const { loaded } = useStore();
   const [tab, setTab] = useState<Tab>('today');
   const insets = useSafeAreaInsets();
+
+  // Android 뒤로가기: 다른 탭에서는 홈으로, 홈에서는 기본 동작(앱 종료)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (tab === 'today') return false;
+      setTab('today');
+      return true;
+    });
+    return () => sub.remove();
+  }, [tab]);
 
   if (!loaded) {
     return (
@@ -81,10 +91,10 @@ const styles = StyleSheet.create({
   tabIcon: { fontSize: 20 },
   tabLabel: { fontSize: 11, fontWeight: '600', color: colors.sub },
   homeButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    marginTop: -26,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    marginTop: -24,
     backgroundColor: colors.card,
     borderWidth: 3,
     borderColor: colors.line,

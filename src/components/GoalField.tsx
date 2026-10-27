@@ -22,13 +22,12 @@ export function GoalField({ k, unit, decimal }: { k: keyof Goals; unit: string; 
   return (
     <View style={{ width: 130 }}>
       <NumberField
+        autoFocus
         decimal={decimal}
         value={value}
         unit={unit}
-        onCommit={(v) => {
-          if (v) setGoals({ ...data.goals, [k]: v });
-          setEditing(false);
-        }}
+        onCommit={(v) => v && setGoals({ ...data.goals, [k]: v })}
+        onDone={() => setEditing(false)}
       />
     </View>
   );

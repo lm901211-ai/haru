@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppData, Challenge, DayLog, Goals, Habit, Profile, Todo } from './types';
-import { newId } from './date';
+import { newId, todayKey } from './date';
 
 const STORAGE_KEY = 'daily-app/v1';
 
@@ -16,6 +16,7 @@ type Store = {
   updateLog: (date: string, fn: (log: DayLog) => DayLog) => void;
   setGoals: (goals: Goals) => void;
   setProfile: (profile: Profile) => void;
+  replaceAll: (data: AppData) => void;
   addTodo: (title: string, date: string) => void;
   updateTodo: (id: string, patch: Partial<Todo>) => void;
   deleteTodo: (id: string) => void;
@@ -66,6 +67,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setProfile = useCallback((profile: Profile) => setData((d) => ({ ...d, profile })), []);
 
+  // 백업 복원: 빠진 항목은 기본값으로 채움
+  const replaceAll = useCallback(
+    (next: AppData) => setData({ ...emptyData, ...next, goals: { ...defaultGoals, ...next.goals } }),
+    [],
+  );
+
   const addTodo = useCallback((title: string, date: string) => {
     const todo: Todo = { id: newId(), title, date, done: false, important: false };
     setData((d) => ({ ...d, todos: [...d.todos, todo] }));
@@ -80,7 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addHabit = useCallback((name: string, emoji: string) => {
-    const habit: Habit = { id: newId(), name, emoji, doneDates: [] };
+    const habit: Habit = { id: newId(), name, emoji, doneDates: [], createdAt: todayKey() };
     setData((d) => ({ ...d, habits: [...d.habits, habit] }));
   }, []);
 
@@ -111,7 +118,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StoreContext.Provider
-      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit, addChallenge, updateChallenge, deleteChallenge }}
+      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, replaceAll, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit, addChallenge, updateChallenge, deleteChallenge }}
     >
       {children}
     </StoreContext.Provider>

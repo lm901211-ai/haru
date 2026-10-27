@@ -1,7 +1,6 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,18 +12,22 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
-import { addDays, formatKey, todayKey } from '../date';
+import { addDays, formatKey, todayKey, weekdayOf } from '../date';
 
-export function Screen({ title, children }: { title: string; children: ReactNode }) {
+export function Screen({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    // Android도 edge-to-edge라 창이 줄어들지 않으므로 양쪽 모두 padding 방식으로 키보드를 피함
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.bg }}
         contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: 32, gap: 12 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.screenTitle}>{title}</Text>
+        <View style={[styles.row, { justifyContent: 'space-between' }]}>
+          <Text style={[styles.screenTitle, { flex: 1 }]}>{title}</Text>
+          {right}
+        </View>
         {children}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -101,39 +104,70 @@ export function Input(props: TextInputProps) {
   return <TextInput placeholderTextColor={colors.sub} {...props} style={[styles.input, props.style]} />;
 }
 
-/** 숫자 입력칸: 입력 중에는 로컬 상태로 두고, 입력이 끝나면 저장 */
+const parseNumber = (text: string, decimal?: boolean) => {
+  const n = decimal ? parseFloat(text.replace(',', '.')) : parseInt(text, 10);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+};
+
+/**
+ * 숫자 입력칸: 입력 중에는 로컬 상태로 두고, 입력이 끝나면 저장.
+ * 값이 실제로 바뀐 경우에만 저장하고, 입력 도중 다른 탭으로 넘어가도(언마운트) 저장한다.
+ */
 export function NumberField({
   value,
   onCommit,
+  onDone,
   placeholder,
   unit,
   decimal,
+  autoFocus,
 }: {
   value: number | undefined;
   onCommit: (v: number | undefined) => void;
+  onDone?: () => void;
   placeholder?: string;
   unit?: string;
   decimal?: boolean;
+  autoFocus?: boolean;
 }) {
-  const [text, setText] = useState(value != null ? String(value) : '');
-  useEffect(() => setText(value != null ? String(value) : ''), [value]);
+  const show = (v: number | undefined) => (v != null ? String(v) : '');
+  const [text, setText] = useState(show(value));
+  // 바깥에서 값이 바뀌면(날짜 이동, 다른 화면에서 입력 등) 입력칸도 맞춤
+  const [shownValue, setShownValue] = useState(value);
+  if (value !== shownValue) {
+    setShownValue(value);
+    setText(show(value));
+  }
+
+  const latest = useRef({ text, value, onCommit, decimal });
+  useEffect(() => {
+    latest.current = { text, value, onCommit, decimal };
+  });
 
   const commit = () => {
-    const n = decimal ? parseFloat(text) : parseInt(text, 10);
-    onCommit(Number.isFinite(n) && n >= 0 ? n : undefined);
+    const { text: t, value: v, onCommit: save, decimal: dec } = latest.current;
+    const n = parseNumber(t, dec);
+    if (n !== v) save(n);
   };
+
+  // 저장하지 않은 입력이 남은 채로 화면을 벗어나면 저장
+  useEffect(() => () => commit(), []);
 
   return (
     <View style={styles.row}>
       <Input
         value={text}
         onChangeText={setText}
-        onEndEditing={commit}
+        onBlur={() => {
+          commit();
+          onDone?.();
+        }}
         onSubmitEditing={commit}
         keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
         placeholder={placeholder}
         style={{ flex: 1 }}
         returnKeyType="done"
+        autoFocus={autoFocus}
       />
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
     </View>
@@ -154,6 +188,39 @@ export function DateNav({ date, onChange }: { date: string; onChange: (d: string
       <Pressable onPress={() => onChange(addDays(date, 1))} hitSlop={12}>
         <Text style={styles.dateArrow}>›</Text>
       </Pressable>
+    </View>
+  );
+}
+
+/** 최근 7일 체크 동그라미. 눌러서 지난 날짜도 체크/해제할 수 있음 (minDate 이전은 비활성) */
+export function WeekDots({ doneDates, onToggle, minDate, color = colors.steps }: { doneDates: string[]; onToggle: (date: string) => void; minDate?: string; color?: string }) {
+  const today = todayKey();
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+  return (
+    <View style={[styles.row, { justifyContent: 'space-between' }]}>
+      {week.map((d) => {
+        const done = doneDates.includes(d);
+        const disabled = minDate != null && d < minDate;
+        return (
+          <Pressable key={d} onPress={() => onToggle(d)} disabled={disabled} style={{ alignItems: 'center', gap: 4, opacity: disabled ? 0.3 : 1 }} hitSlop={4}>
+            <Text style={[styles.muted, d === today && { color: colors.primary, fontWeight: '700' }]}>{d === today ? '오늘' : weekdayOf(d)}</Text>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: done ? color : colors.bg,
+                borderWidth: d === today ? 2 : 0,
+                borderColor: colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {done && <Text style={{ color: '#fff', fontWeight: '800' }}>✓</Text>}
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

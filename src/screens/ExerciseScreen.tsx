@@ -81,7 +81,7 @@ export default function ExerciseScreen() {
 
       <Card title="👟 걸음 수" right={<GoalField k="steps" unit="보" />}>
         <ProgressBar value={log.steps} max={goals.steps} color={colors.steps} />
-        <NumberField value={log.steps || undefined} placeholder="걸음 수 입력" unit="보" onCommit={(v) => update((l) => ({ ...l, steps: v ?? 0 }))} />
+        <NumberField key={date} value={log.steps || undefined} placeholder="걸음 수 입력" unit="보" onCommit={(v) => update((l) => ({ ...l, steps: v ?? 0 }))} />
         {Platform.OS === 'ios' && <Button label="휴대폰 만보기에서 불러오기" small outline color={colors.steps} onPress={syncSteps} />}
       </Card>
 

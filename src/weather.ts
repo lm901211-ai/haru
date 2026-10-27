@@ -56,7 +56,12 @@ export async function fetchWeather(): Promise<Weather> {
     '&current=temperature_2m,apparent_temperature,weather_code' +
     '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
     '&timezone=auto&forecast_days=1';
-  const res = await fetch(url);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new Error('인터넷에 연결되지 않아 날씨를 불러오지 못했어요');
+  }
   if (!res.ok) throw new Error(`날씨 서버 오류 (${res.status})`);
   const json = await res.json();
   return {

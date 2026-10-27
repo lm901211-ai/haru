@@ -25,6 +25,7 @@ export type Habit = {
   name: string;
   emoji: string;
   doneDates: string[];
+  createdAt?: string; // 만든 날 (이전 날짜의 점수에는 포함하지 않음)
 };
 
 export type Goals = {

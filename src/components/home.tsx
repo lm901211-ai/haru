@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Card, Chip, NumberField, ProgressBar, styles } from './ui';
 import { useStore } from '../store';
 import { fetchWeather, Weather } from '../weather';
 import { bmiInfo, controlStats, cpkVerdict, dayScore, SCORE_LSL, scoreComment } from '../score';
 import { challengeProgress } from '../challenges';
+import { dayActivities } from '../report';
 import { addDays, formatKey, fromKey, todayKey } from '../date';
 import { ControlChart, Ring } from './charts';
 import { colors } from '../theme';
@@ -13,17 +14,27 @@ export function WeatherCard() {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    let alive = true;
     fetchWeather()
-      .then(setWeather)
-      .catch((e) => setError(e instanceof Error ? e.message : '날씨를 불러오지 못했어요'))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((w) => {
+        if (!alive) return;
+        setWeather(w);
+        setError(null);
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : '날씨를 불러오지 못했어요'))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [reloadKey]);
 
-  useEffect(load, [load]);
+  const load = () => {
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   return (
     <Card
@@ -63,7 +74,8 @@ export function WeatherCard() {
 export function DailyReport() {
   const { data } = useStore();
   const today = todayKey();
-  const [which, setWhich] = useState<'yesterday' | 'today'>('yesterday');
+  // 어제 기록이 없으면(처음 쓰는 날 등) 오늘 리포트부터 보여줌
+  const [which, setWhich] = useState<'yesterday' | 'today'>(() => (dayScore(data, addDays(today, -1)).hasRecord ? 'yesterday' : 'today'));
   const date = which === 'today' ? today : addDays(today, -1);
   const score = dayScore(data, date);
   const before = dayScore(data, addDays(date, -1));
@@ -72,6 +84,7 @@ export function DailyReport() {
   const best = ranked[0];
   const worst = ranked[ranked.length - 1];
   const fullCount = score.items.filter((i) => i.ratio >= 1).length;
+  const activities = dayActivities(data, date);
 
   return (
     <Card
@@ -114,6 +127,20 @@ export function DailyReport() {
         ))}
       </View>
 
+      {activities.length > 0 && (
+        <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, gap: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{which === 'today' ? '오늘' : '어제'} 한 일</Text>
+          {activities.map((a) => (
+            <View key={a.label} style={{ flexDirection: 'row', gap: 8 }}>
+              <Text style={{ width: 62, fontSize: 13, color: colors.sub }}>
+                {a.icon} {a.label}
+              </Text>
+              <Text style={{ flex: 1, fontSize: 13, color: colors.text, lineHeight: 19 }}>{a.text}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       {score.hasRecord && best.ratio > 0 && (
         <View style={{ backgroundColor: colors.bg, borderRadius: 10, padding: 10, gap: 2 }}>
           <Text style={{ fontSize: 13, color: colors.text }}>
@@ -133,7 +160,7 @@ export function DailyReport() {
 export function ScoreControlCard() {
   const { data } = useStore();
   const st = controlStats(data, todayKey(), 14);
-  const verdict = cpkVerdict(st.cpk, st.mean);
+  const verdict = cpkVerdict(st);
   const [help, setHelp] = useState(false);
 
   const stats = [
@@ -171,6 +198,7 @@ export function ScoreControlCard() {
       {help && (
         <View style={{ gap: 3 }}>
           <Text style={styles.muted}>· CL: 기간 평균 점수 / UCL·LCL: 평균 ± 3σ (평소 범위)</Text>
+          <Text style={styles.muted}>· σ: 하루하루 점수 차이(이동범위) 평균 ÷ 1.128 로 추정 (I-MR 관리도 방식)</Text>
           <Text style={styles.muted}>· LSL: 목표 하한 {SCORE_LSL}점. 아래 주황 영역은 미달 구간</Text>
           <Text style={styles.muted}>· Cpk = (평균 − {SCORE_LSL}) ÷ 3σ. 1.33↑ 매우 안정, 1.0↑ 안정, 1.0 미만이면 점수가 자주 {SCORE_LSL}점 아래로 떨어질 수 있어요</Text>
           <Text style={styles.muted}>· 빨간 점: 평소 범위를 벗어난 날, 주황 점: {SCORE_LSL}점 미만인 날</Text>
@@ -180,10 +208,11 @@ export function ScoreControlCard() {
   );
 }
 
-export function WeightCard() {
+export function QuickRecordCard({ links }: { links: ReactNode }) {
   const { data, getLog, updateLog, setProfile } = useStore();
   const today = todayKey();
-  const weight = getLog(today).weight;
+  const log = getLog(today);
+  const weight = log.weight;
   const height = data.profile.heightCm;
 
   // 오늘 이전의 가장 최근 체중 기록
@@ -196,28 +225,57 @@ export function WeightCard() {
   const bmi = weight != null && height ? bmiInfo(weight, height) : null;
 
   return (
-    <Card title="⚖️ 오늘의 체중">
-      {!height && (
-        <>
-          <Text style={styles.muted}>BMI 계산을 위해 키를 먼저 입력해 주세요</Text>
-          <NumberField decimal value={undefined} placeholder="키 (예: 170)" unit="cm" onCommit={(v) => v && setProfile({ ...data.profile, heightCm: v })} />
-        </>
-      )}
-      <NumberField decimal value={weight} placeholder="오늘 몸무게 (예: 65.2)" unit="kg" onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))} />
-      <View style={[styles.row, { justifyContent: 'space-between' }]}>
-        {height ? <Text style={styles.muted}>키 {height}cm</Text> : <View />}
-        {change != null && (
-          <Text style={{ fontWeight: '600', color: change > 0 ? colors.danger : change < 0 ? colors.steps : colors.sub }}>
-            지난 기록 대비 {change > 0 ? `+${change}` : change}kg
+    <Card title="✏️ 오늘 빠른 기록">
+      <View style={[styles.row, { gap: 10 }]}>
+        <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>💧 물</Text>
+        <Pressable
+          onPress={() => updateLog(today, (l) => ({ ...l, water: Math.max(0, l.water - 1) }))}
+          hitSlop={6}
+          style={{ width: 40, height: 40, borderRadius: 10, borderWidth: 1.5, borderColor: colors.water, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ color: colors.water, fontSize: 18, fontWeight: '700' }}>－</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => updateLog(today, (l) => ({ ...l, water: l.water + 1 }))}
+          style={({ pressed }) => [{ flex: 1, height: 40, backgroundColor: '#E8F6FD', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={{ color: colors.water, fontWeight: '800' }}>
+            ＋ 한 잔 ({log.water}/{data.goals.waterCups})
           </Text>
-        )}
+        </Pressable>
       </View>
-      {bmi && (
-        <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }]}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>BMI {bmi.bmi.toFixed(1)}</Text>
-          <Text style={{ color: bmi.color, fontWeight: '700' }}>{bmi.label}</Text>
+
+      <View style={[styles.row, { gap: 10 }]}>
+        <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>⚖️ 체중</Text>
+        <View style={{ flex: 1 }}>
+          <NumberField decimal value={weight} placeholder="오늘 몸무게 (예: 65.2)" unit="kg" onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))} />
+        </View>
+      </View>
+      {!height && (
+        <View style={[styles.row, { gap: 10 }]}>
+          <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>📏 키</Text>
+          <View style={{ flex: 1 }}>
+            <NumberField decimal value={undefined} placeholder="BMI 계산용 키 (예: 170)" unit="cm" onCommit={(v) => v && setProfile({ ...data.profile, heightCm: v })} />
+          </View>
         </View>
       )}
+      {(bmi || change != null) && (
+        <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }]}>
+          {bmi ? (
+            <Text style={{ color: colors.text, fontWeight: '700' }}>
+              BMI {bmi.bmi.toFixed(1)} <Text style={{ color: bmi.color }}>{bmi.label}</Text>
+            </Text>
+          ) : (
+            <View />
+          )}
+          {change != null && (
+            <Text style={{ fontWeight: '600', color: change > 0 ? colors.danger : change < 0 ? colors.steps : colors.sub }}>
+              지난 기록 대비 {change > 0 ? `+${change}` : change}kg
+            </Text>
+          )}
+        </View>
+      )}
+      <View style={[styles.row, { justifyContent: 'space-around', paddingTop: 2 }]}>{links}</View>
     </Card>
   );
 }
@@ -238,7 +296,7 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
         const color = p.status === 'done' ? colors.steps : p.status === 'behind' ? colors.exercise : colors.primary;
         const doneToday = c.kind === 'streak' && c.doneDates.includes(today);
         return (
-          <View key={c.id} style={{ gap: 5 }}>
+          <View key={c.id} style={{ gap: 4 }}>
             <View style={styles.row}>
               <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: colors.text }} numberOfLines={1}>
                 {c.emoji} {c.title}
@@ -262,6 +320,10 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
               <Text style={{ width: 44, textAlign: 'right', fontWeight: '800', color }}>{pct}%</Text>
             </View>
             <ProgressBar value={p.ratio} max={1} color={color} marker={p.expected} />
+            <Text style={[styles.muted, { fontSize: 12 }]} numberOfLines={1}>
+              {p.summary}
+              {p.status === 'behind' ? '  · 조금 뒤처졌어요' : p.status === 'ahead' ? '  · 순항 중' : ''}
+            </Text>
           </View>
         );
       })}
