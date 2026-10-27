@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { confirmAction, notify } from '../dialog';
 import { Button, Card, Chip, Input, NumberField, ProgressBar, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { challengeProgress, currentWeight, STATUS_TEXT, termOf } from '../challenges';
@@ -40,10 +41,7 @@ export default function GoalScreen() {
     });
 
   const confirmDelete = (c: Challenge) =>
-    Alert.alert('목표 삭제', `"${c.title}" 목표를 삭제할까요?`, [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: () => deleteChallenge(c.id) },
-    ]);
+    confirmAction('목표 삭제', `"${c.title}" 목표를 삭제할까요?`, '삭제', () => deleteChallenge(c.id));
 
   return (
     <Screen title="목표">
@@ -215,16 +213,16 @@ function NewChallengeForm({ defaultWeight, onCreate, onCancel }: { defaultWeight
   const weeklyCalc = Math.abs(tw - sw) / (nDays / 7);
 
   const create = () => {
-    if (!title.trim()) return Alert.alert('목표 이름을 입력해 주세요.');
-    if (!(nDays > 0)) return Alert.alert('기간(일)을 입력해 주세요.');
+    if (!title.trim()) return notify('목표 이름을 입력해 주세요.');
+    if (!(nDays > 0)) return notify('기간(일)을 입력해 주세요.');
     const base = { id: newId(), title: title.trim(), emoji, startDate, days: nDays };
     if (kind === 'weight') {
-      if (!(sw > 0) || !Number.isFinite(tw) || tw <= 0) return Alert.alert('시작 체중과, 목표 체중 또는 주당 목표를 입력해 주세요.');
+      if (!(sw > 0) || !Number.isFinite(tw) || tw <= 0) return notify('시작 체중과, 목표 체중 또는 주당 목표를 입력해 주세요.');
       return onCreate({ ...base, kind, startWeight: sw, targetWeight: Math.round(tw * 10) / 10 });
     }
     if (kind === 'streak') return onCreate({ ...base, kind, mode, doneDates: [] });
     const t = parseFloat(target);
-    if (!(t > 0) || !unit.trim()) return Alert.alert('목표 수치와 단위를 입력해 주세요.');
+    if (!(t > 0) || !unit.trim()) return notify('목표 수치와 단위를 입력해 주세요.');
     onCreate({ ...base, kind, unit: unit.trim(), target: t, entries: {} });
   };
 

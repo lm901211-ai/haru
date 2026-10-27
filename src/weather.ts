@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 export type Weather = {
@@ -29,6 +30,22 @@ function describe(code: number): { label: string; emoji: string } {
   return { label: '뇌우', emoji: '⛈️' };
 }
 
+async function nativePlaceName(latitude: number, longitude: number): Promise<string> {
+  const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
+  return addr ? [addr.city ?? addr.region, addr.district ?? addr.subregion].filter(Boolean).join(' ') : '';
+}
+
+/** 웹에는 기기 주소 변환이 없어 무료 역지오코딩 서비스(키 불필요)를 사용 */
+async function webPlaceName(latitude: number, longitude: number): Promise<string> {
+  const res = await fetch(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ko`,
+  );
+  if (!res.ok) return '';
+  const j = (await res.json()) as { city?: string; locality?: string; principalSubdivision?: string };
+  const parts = [j.city || j.principalSubdivision, j.locality].filter((x): x is string => !!x);
+  return [...new Set(parts)].join(' ');
+}
+
 async function getPosition(): Promise<{ latitude: number; longitude: number; place: string; note?: string }> {
   try {
     const { granted } = await Location.requestForegroundPermissionsAsync();
@@ -37,8 +54,7 @@ async function getPosition(): Promise<{ latitude: number; longitude: number; pla
     const { latitude, longitude } = pos.coords;
     let place = '현재 위치';
     try {
-      const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (addr) place = [addr.city ?? addr.region, addr.district ?? addr.subregion].filter(Boolean).join(' ') || place;
+      place = (Platform.OS === 'web' ? await webPlaceName(latitude, longitude) : await nativePlaceName(latitude, longitude)) || place;
     } catch {
       // 주소 변환 실패 시 '현재 위치'로 표시
     }

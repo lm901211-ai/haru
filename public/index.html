@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- viewport-fit=cover: 아이폰 노치/홈 인디케이터 영역(safe area) 계산, maximum-scale=1: 입력칸 누를 때 자동 확대 방지 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>%WEB_TITLE%</title>
+
+    <!-- 홈 화면에 추가했을 때 앱처럼 전체 화면으로 실행 -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="하루관리" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#F4F6FA" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body,
+      #root {
+        height: 100%;
+      }
+      @supports (height: 100dvh) {
+        html,
+        body,
+        #root {
+          height: 100dvh;
+        }
+      }
+      body {
+        overflow: hidden;
+        margin: 0;
+        background: #f4f6fa;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        /* 길게 누를 때 뜨는 복사/공유 메뉴와 글자 선택 막기 (입력칸은 제외) */
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      #root {
+        display: flex;
+        flex: 1;
+      }
+    </style>
+    <script>
+      // 오프라인에서도 열리도록 서비스 워커 등록, 브라우저가 저장 데이터를 지우지 않도록 요청
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+      }
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(function () {});
+      }
+    </script>
+  </head>
+
+  <body>
+    <noscript>이 앱을 쓰려면 JavaScript를 켜 주세요.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

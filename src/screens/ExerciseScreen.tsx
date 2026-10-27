@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
+import { notify } from '../dialog';
 import { Pedometer } from 'expo-sensors';
 import { Button, Card, DateNav, DeleteX, Empty, Input, NumberField, ProgressBar, Screen, styles } from '../components/ui';
 import { TrendCard } from '../components/charts';
@@ -37,7 +38,7 @@ export default function ExerciseScreen() {
 
   const addExercise = () => {
     const minutes = parseInt(exMin, 10);
-    if (!exName.trim() || !(minutes > 0)) return Alert.alert('운동 이름과 시간(분)을 입력해 주세요.');
+    if (!exName.trim() || !(minutes > 0)) return notify('운동 이름과 시간(분)을 입력해 주세요.');
     update((l) => ({ ...l, exercises: [...l.exercises, { id: newId(), name: exName.trim(), minutes }] }));
     setExName('');
     setExMin('');
@@ -48,7 +49,7 @@ export default function ExerciseScreen() {
       const steps = await readDeviceSteps(date);
       update((l) => ({ ...l, steps }));
     } catch (e) {
-      Alert.alert('걸음 수 불러오기', e instanceof Error ? e.message : String(e));
+      notify('걸음 수 불러오기', e instanceof Error ? e.message : String(e));
     }
   };
 

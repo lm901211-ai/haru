@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { notify } from '../dialog';
 import { Button, Card, Chip, DateNav, DeleteX, Empty, Input, ProgressBar, Screen, styles } from '../components/ui';
 import { TrendCard } from '../components/charts';
 import { GoalField } from '../components/GoalField';
@@ -28,7 +29,7 @@ export default function DietScreen() {
   };
 
   const addMeal = () => {
-    if (!mealText.trim()) return Alert.alert('무엇을 먹었는지 입력해 주세요.');
+    if (!mealText.trim()) return notify('무엇을 먹었는지 입력해 주세요.');
     const kcal = parseInt(mealKcal, 10);
     update((l) => ({
       ...l,

@@ -54,6 +54,12 @@ cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
 ```
 JDK 17, Android SDK(platform 37, build-tools 37.0.0, NDK 27.1, CMake 3.30.5)가 필요합니다.
 
+## 아이폰 (웹앱)
+아이폰은 설치 파일을 직접 깔 수 없어서 웹앱으로 씁니다. 사파리에서 웹앱 주소를 열고 **공유 → 홈 화면에 추가**하면 앱처럼 전체 화면으로 실행되고, 인터넷이 없어도 열립니다.
+- 기록은 그 아이폰(홈 화면 앱) 안에만 저장됩니다. 사파리 탭과 홈 화면 앱은 저장 공간이 따로라서 항상 홈 화면 아이콘으로 여세요.
+- 만보기 자동 불러오기만 안 되고 나머지 기능은 같습니다. 백업은 ⚙️ 설정에서 파일로 내보내고 복원합니다.
+- 배포: `scripts/deploy-web.sh <저장소 이름>` → GitHub Pages(gh-pages 브랜치). 새 버전을 올릴 때는 `public/sw.js`의 `CACHE` 이름도 올려 주세요.
+
 ## 실행 방법
 ```bash
 npm install
@@ -72,7 +78,10 @@ src/score.ts            하루 점수, BMI 계산
 src/grade.ts            주간·월간 성적표 (S~F 등급, 과목·목표 실적, 종합 의견)
 src/report.ts           그날 한 일 요약
 src/rings.ts            달력용 하루 3링(활동·건강·루틴)
-src/backup.ts           백업 파일 내보내기/복원
+src/backup.ts           백업 파일 내보내기/복원 (앱)
+src/backup.web.ts       백업 파일 내보내기/복원 (아이폰 웹앱)
+src/dialog.ts           확인/알림 창 (웹에서도 동작)
+public/                 웹앱 설정 (index.html, manifest, 서비스 워커, 아이콘)
 src/challenges.ts       장·단기 목표 달성도 계산
 src/weather.ts          위치 + 날씨 불러오기
 src/components/ui.tsx   공용 UI 컴포넌트

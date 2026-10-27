@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { confirmAction, notify } from '../dialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, NumberField, styles } from './ui';
 import { useStore } from '../store';
@@ -39,7 +40,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
     try {
       await job();
     } catch (e) {
-      Alert.alert('오류', e instanceof Error ? e.message : String(e));
+      notify('오류', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -49,17 +50,10 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
     run(async () => {
       const next = await pickBackup();
       if (!next) return;
-      Alert.alert('백업 복원', `백업 파일의 기록(${Object.keys(next.logs).length}일치)으로 지금 데이터를 바꿀까요?\n현재 데이터는 사라져요.`, [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '복원',
-          style: 'destructive',
-          onPress: () => {
-            replaceAll(next);
-            Alert.alert('복원 완료', '백업 데이터를 불러왔어요.');
-          },
-        },
-      ]);
+      confirmAction('백업 복원', `백업 파일의 기록(${Object.keys(next.logs).length}일치)으로 지금 데이터를 바꿀까요?\n현재 데이터는 사라져요.`, '복원', () => {
+        replaceAll(next);
+        notify('복원 완료', '백업 데이터를 불러왔어요.');
+      });
     });
 
   return (

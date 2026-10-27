@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { confirmAction } from '../dialog';
 import { Button, Card, Chip, Empty, Input, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { streak, todayKey } from '../date';
@@ -21,10 +22,7 @@ export default function HabitScreen() {
   };
 
   const confirmDelete = (id: string, habitName: string) =>
-    Alert.alert('습관 삭제', `"${habitName}" 습관과 기록을 삭제할까요?`, [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: () => deleteHabit(id) },
-    ]);
+    confirmAction('습관 삭제', `"${habitName}" 습관과 기록을 삭제할까요?`, '삭제', () => deleteHabit(id));
 
   return (
     <Screen title="습관">
