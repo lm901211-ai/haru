@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { Card, NumberField, ProgressBar, styles } from './ui';
+import { Card, Chip, NumberField, ProgressBar, styles } from './ui';
 import { useStore } from '../store';
 import { fetchWeather, Weather } from '../weather';
-import { bmiInfo, dayScore, scoreComment } from '../score';
+import { bmiInfo, controlStats, cpkVerdict, dayScore, SCORE_LSL, scoreComment } from '../score';
 import { challengeProgress } from '../challenges';
-import { addDays, todayKey, weekdayOf } from '../date';
+import { addDays, formatKey, fromKey, todayKey } from '../date';
+import { ControlChart, Ring } from './charts';
 import { colors } from '../theme';
 
 export function WeatherCard() {
@@ -59,87 +60,121 @@ export function WeatherCard() {
   );
 }
 
-export function ScoreReport() {
+export function DailyReport() {
   const { data } = useStore();
   const today = todayKey();
-  const todayScore = dayScore(data, today);
-  const yesterday = dayScore(data, addDays(today, -1));
-  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)).map((d) => ({ date: d, ...dayScore(data, d) }));
-
-  const diff = todayScore.total - yesterday.total;
-  const ranked = [...todayScore.items].sort((a, b) => b.ratio - a.ratio);
+  const [which, setWhich] = useState<'yesterday' | 'today'>('yesterday');
+  const date = which === 'today' ? today : addDays(today, -1);
+  const score = dayScore(data, date);
+  const before = dayScore(data, addDays(date, -1));
+  const diff = score.total - before.total;
+  const ranked = [...score.items].sort((a, b) => b.ratio - a.ratio);
   const best = ranked[0];
   const worst = ranked[ranked.length - 1];
+  const fullCount = score.items.filter((i) => i.ratio >= 1).length;
 
   return (
-    <Card title="📊 오늘의 리포트">
-      <View style={[styles.row, { alignItems: 'flex-end', justifyContent: 'space-between' }]}>
-        <View>
-          <Text style={{ fontSize: 48, fontWeight: '900', color: colors.primary, lineHeight: 52 }}>
-            {todayScore.total}
-            <Text style={{ fontSize: 18, color: colors.sub, fontWeight: '600' }}> 점</Text>
-          </Text>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{scoreComment(todayScore.total)}</Text>
+    <Card
+      title="📊 하루 리포트"
+      right={
+        <View style={styles.row}>
+          <Chip label="어제" active={which === 'yesterday'} onPress={() => setWhich('yesterday')} />
+          <Chip label="오늘" active={which === 'today'} onPress={() => setWhich('today')} />
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-          <Text style={styles.muted}>어제</Text>
-          {yesterday.hasRecord ? (
-            <>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: colors.text }}>{yesterday.total}점</Text>
-              <Text style={{ fontWeight: '700', color: diff > 0 ? colors.steps : diff < 0 ? colors.danger : colors.sub }}>
-                {diff > 0 ? `▲ ${diff}` : diff < 0 ? `▼ ${-diff}` : '― 0'}
-              </Text>
-            </>
-          ) : (
-            <Text style={{ fontSize: 15, color: colors.sub }}>기록 없음</Text>
-          )}
-        </View>
-      </View>
-
-      {/* 최근 7일 점수 */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 84, marginTop: 4 }}>
-        {week.map((d) => {
-          const isToday = d.date === today;
-          return (
-            <View key={d.date} style={{ alignItems: 'center', flex: 1, gap: 3 }}>
-              <Text style={{ fontSize: 11, color: colors.sub }}>{d.hasRecord ? d.total : ''}</Text>
-              <View
-                style={{
-                  width: 18,
-                  height: Math.max(d.hasRecord ? (d.total / 100) * 52 : 0, 3),
-                  borderRadius: 5,
-                  backgroundColor: isToday ? colors.primary : d.hasRecord ? '#B9C9FF' : colors.line,
-                }}
-              />
-              <Text style={{ fontSize: 11, color: isToday ? colors.primary : colors.sub, fontWeight: isToday ? '700' : '400' }}>{weekdayOf(d.date)}</Text>
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={{ gap: 7, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }}>
-        {todayScore.items.map((item) => (
-          <View key={item.key} style={styles.row}>
-            <Text style={{ width: 62, fontSize: 13, color: colors.text }}>{item.label}</Text>
-            <View style={{ flex: 1 }}>
-              <ProgressBar value={item.ratio} max={1} color={item.color} />
-            </View>
-            <Text style={{ width: 44, textAlign: 'right', fontSize: 12, color: colors.sub }}>
-              {Math.round(item.ratio * item.weight)}/{item.weight}
+      }
+    >
+      <View style={[styles.row, { gap: 16 }]}>
+        <Ring ratio={score.total / 100} size={118} stroke={12} color={colors.primary}>
+          <Text style={{ fontSize: 34, fontWeight: '900', color: colors.text }}>{score.hasRecord ? score.total : '-'}</Text>
+          <Text style={{ fontSize: 11, color: colors.sub, marginTop: -2 }}>/ 100점</Text>
+        </Ring>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={{ fontSize: 13, color: colors.sub }}>{formatKey(date)}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{score.hasRecord ? scoreComment(score.total) : '기록이 없어요'}</Text>
+          {before.hasRecord && score.hasRecord && (
+            <Text style={{ fontWeight: '700', color: diff > 0 ? colors.steps : diff < 0 ? colors.danger : colors.sub }}>
+              {which === 'today' ? '어제' : '그저께'} {before.total}점 대비 {diff > 0 ? `▲ ${diff}` : diff < 0 ? `▼ ${-diff}` : '변동 없음'}
             </Text>
+          )}
+          <Text style={styles.muted}>
+            목표 100% 달성 {fullCount}/{score.items.length}개 항목
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, marginTop: 4 }}>
+        {score.items.map((item) => (
+          <View key={item.key} style={{ width: '25%', alignItems: 'center', gap: 3 }}>
+            <Ring ratio={item.ratio} size={58} stroke={6} color={item.color}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: item.ratio >= 1 ? item.color : colors.text }}>{Math.round(item.ratio * 100)}%</Text>
+            </Ring>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{item.label}</Text>
+            <Text style={{ fontSize: 10, color: colors.sub }}>{item.valueText}</Text>
           </View>
         ))}
       </View>
 
-      {best.ratio > 0 && (
-        <Text style={styles.muted}>
-          👏 가장 잘한 것: <Text style={{ color: colors.text, fontWeight: '700' }}>{best.label}</Text>
+      {score.hasRecord && best.ratio > 0 && (
+        <View style={{ backgroundColor: colors.bg, borderRadius: 10, padding: 10, gap: 2 }}>
+          <Text style={{ fontSize: 13, color: colors.text }}>
+            👏 가장 잘한 것 <Text style={{ fontWeight: '800' }}>{best.label}</Text> ({Math.round(best.ratio * 100)}%)
+          </Text>
           {worst.ratio < 1 && (
-            <>
-              {'   '}🎯 채워볼 것: <Text style={{ color: colors.text, fontWeight: '700' }}>{worst.label}</Text>
-            </>
+            <Text style={{ fontSize: 13, color: colors.text }}>
+              🎯 채워볼 것 <Text style={{ fontWeight: '800' }}>{worst.label}</Text> ({Math.round(worst.ratio * 100)}%)
+            </Text>
           )}
-        </Text>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+export function ScoreControlCard() {
+  const { data } = useStore();
+  const st = controlStats(data, todayKey(), 14);
+  const verdict = cpkVerdict(st.cpk, st.mean);
+  const [help, setHelp] = useState(false);
+
+  const stats = [
+    { label: '평균 (CL)', value: st.n ? `${Math.round(st.mean)}점` : '-' },
+    { label: '편차 (σ)', value: st.n >= 2 ? `±${st.sigma.toFixed(1)}` : '-' },
+    { label: 'Cpk', value: st.cpk != null ? st.cpk.toFixed(2) : '-', color: verdict.color },
+    { label: `${SCORE_LSL}점 미만`, value: `${st.belowLsl}일`, color: st.belowLsl ? colors.exercise : undefined },
+  ];
+
+  return (
+    <Card title="📈 루틴 관리도 · 최근 14일" right={<Pressable onPress={() => setHelp(!help)} hitSlop={8}><Text style={{ color: colors.primary, fontWeight: '600' }}>{help ? '닫기' : '보는 법'}</Text></Pressable>}>
+      {st.n === 0 ? (
+        <Text style={[styles.empty, { paddingVertical: 30 }]}>며칠 기록이 쌓이면 관리도가 그려져요</Text>
+      ) : (
+        <ControlChart
+          points={st.points.map((p) => ({ label: String(fromKey(p.date).getDate()), value: p.value }))}
+          cl={st.mean}
+          ucl={st.ucl}
+          lcl={st.lcl}
+          lsl={SCORE_LSL}
+        />
+      )}
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {stats.map((s) => (
+          <View key={s.label} style={{ flex: 1, backgroundColor: colors.bg, borderRadius: 10, paddingVertical: 8, alignItems: 'center' }}>
+            <Text style={{ fontSize: 10, color: colors.sub }}>{s.label}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: s.color ?? colors.text }}>{s.value}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={{ fontWeight: '700', color: verdict.color }}>
+        루틴 안정도: {verdict.text}
+        {st.outOfControl > 0 ? <Text style={{ color: colors.danger }}>{`  · 관리 이탈 ${st.outOfControl}일`}</Text> : null}
+      </Text>
+      {help && (
+        <View style={{ gap: 3 }}>
+          <Text style={styles.muted}>· CL: 기간 평균 점수 / UCL·LCL: 평균 ± 3σ (평소 범위)</Text>
+          <Text style={styles.muted}>· LSL: 목표 하한 {SCORE_LSL}점. 아래 주황 영역은 미달 구간</Text>
+          <Text style={styles.muted}>· Cpk = (평균 − {SCORE_LSL}) ÷ 3σ. 1.33↑ 매우 안정, 1.0↑ 안정, 1.0 미만이면 점수가 자주 {SCORE_LSL}점 아래로 떨어질 수 있어요</Text>
+          <Text style={styles.muted}>· 빨간 점: 평소 범위를 벗어난 날, 주황 점: {SCORE_LSL}점 미만인 날</Text>
+        </View>
       )}
     </Card>
   );
