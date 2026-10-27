@@ -8,7 +8,7 @@ const FORMAT = 'haru-backup';
 
 /** 전체 데이터를 JSON 파일로 만들어 공유 시트(드라이브, 카톡 나에게, 메일 등)로 내보냄 */
 export async function exportBackup(data: AppData): Promise<void> {
-  const file = new File(Paths.cache, `하루관리-백업-${todayKey()}.json`);
+  const file = new File(Paths.cache, `haru-backup-${todayKey()}.json`);
   if (file.exists) file.delete();
   file.create();
   await file.write(JSON.stringify({ format: FORMAT, version: 1, exportedAt: new Date().toISOString(), data }));
