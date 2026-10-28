@@ -11,7 +11,7 @@ const MAIN_MEALS = ['아침', '점심', '저녁'];
 /** 실제로 뭔가 기록된 날인지 (빈 기록은 제외) */
 export function logHasData(log: DayLog | undefined): boolean {
   if (!log) return false;
-  return log.water > 0 || log.steps > 0 || log.sleepHours != null || log.weight != null || log.meals.length > 0 || log.exercises.length > 0;
+  return log.steps > 0 || log.sleepHours != null || log.weight != null || log.meals.length > 0 || log.exercises.length > 0;
 }
 
 /** 그날 진행 중이던 매일 실천 목표인지 (시작 전이거나 이미 달성한 목표는 제외) */
@@ -41,17 +41,15 @@ export function dayScore(data: AppData, date: string): DayScore {
   const exerciseMin = log?.exercises.reduce((s, e) => s + e.minutes, 0) ?? 0;
   const mealsDone = new Set(log?.meals.map((m) => m.type).filter((t) => MAIN_MEALS.includes(t))).size;
 
-  const water = log?.water ?? 0;
   const steps = log?.steps ?? 0;
   const sleep = log?.sleepHours ?? 0;
   const todosDone = todos.filter((t) => t.done).length;
 
   const items: ScoreItem[] = [
-    { key: 'water', label: '💧 물', ratio: clamp(water / g.waterCups), weight: 15, color: colors.water, valueText: `${water}/${g.waterCups}잔` },
     { key: 'steps', label: '👟 걸음', ratio: clamp(steps / g.steps), weight: 15, color: colors.steps, valueText: `${steps.toLocaleString()}보` },
     { key: 'exercise', label: '🏃 운동', ratio: clamp(exerciseMin / g.exerciseMin), weight: 20, color: colors.exercise, valueText: `${exerciseMin}/${g.exerciseMin}분` },
     { key: 'sleep', label: '😴 수면', ratio: clamp(sleep / g.sleepHours), weight: 15, color: colors.sleep, valueText: `${sleep}/${g.sleepHours}시간` },
-    { key: 'meals', label: '🍚 식사', ratio: mealsDone / MAIN_MEALS.length, weight: 10, color: colors.star, valueText: `${mealsDone}/3끼` },
+    { key: 'meals', label: '🍚 식사', ratio: mealsDone / MAIN_MEALS.length, weight: 15, color: colors.star, valueText: `${mealsDone}/3끼` },
   ];
   if (todos.length > 0) {
     items.push({ key: 'todo', label: '📝 할 일', ratio: todosDone / todos.length, weight: 10, color: colors.primary, valueText: `${todosDone}/${todos.length}개` });

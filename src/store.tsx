@@ -7,7 +7,7 @@ import { emptyLog } from './logs';
 
 const STORAGE_KEY = 'daily-app/v1';
 
-const defaultGoals: Goals = { waterCups: 8, steps: 8000, exerciseMin: 30, sleepHours: 7 };
+const defaultGoals: Goals = { steps: 8000, exerciseMin: 30, sleepHours: 7 };
 const emptyData: AppData = { profile: {}, logs: {}, todos: [], habits: [], goals: defaultGoals, challenges: [] };
 
 type Store = {

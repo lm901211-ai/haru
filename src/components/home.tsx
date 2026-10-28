@@ -195,25 +195,6 @@ export function QuickRecordCard({ links }: { links: ReactNode }) {
   return (
     <Card title="✏️ 오늘 빠른 기록">
       <View style={[styles.row, { gap: 10 }]}>
-        <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>💧 물</Text>
-        <Pressable
-          onPress={() => updateLog(today, (l) => ({ ...l, water: Math.max(0, l.water - 1) }))}
-          hitSlop={6}
-          style={{ width: 40, height: 40, borderRadius: 10, borderWidth: 1.5, borderColor: colors.water, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Text style={{ color: colors.water, fontSize: 18, fontWeight: '700' }}>－</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => updateLog(today, (l) => ({ ...l, water: l.water + 1 }))}
-          style={({ pressed }) => [{ flex: 1, height: 40, backgroundColor: '#E8F6FD', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, pressed && { opacity: 0.6 }]}
-        >
-          <Text style={{ color: colors.water, fontWeight: '800' }}>
-            ＋ 한 잔 ({log.water}/{data.goals.waterCups})
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={[styles.row, { gap: 10 }]}>
         <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>⚖️ 체중</Text>
         <View style={{ flex: 1 }}>
           <NumberField decimal value={weight} placeholder="오늘 몸무게 (예: 65.2)" unit="kg" onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))} />

@@ -6,11 +6,11 @@ import { Button, Card, NumberField, styles } from './ui';
 import { useStore } from '../store';
 import { exportBackup, pickBackup } from '../backup';
 import { ImportSection } from './ImportSection';
+import { AiSettingsCard } from './AiSettingsCard';
 import { colors } from '../theme';
 import { Goals } from '../types';
 
 const GOAL_FIELDS: { k: keyof Goals; label: string; unit: string; decimal?: boolean }[] = [
-  { k: 'waterCups', label: '💧 물', unit: '잔' },
   { k: 'steps', label: '👟 걸음', unit: '보' },
   { k: 'exerciseMin', label: '🏃 운동', unit: '분' },
   { k: 'sleepHours', label: '😴 수면', unit: '시간', decimal: true },
@@ -86,6 +86,8 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <Text style={styles.muted}>하루 점수와 그래프의 목표선에 쓰여요.</Text>
         </Card>
 
+        <AiSettingsCard />
+
         <ImportSection />
 
         <Card title="💾 데이터 백업">
@@ -97,10 +99,10 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           </Text>
           <Button label="백업 파일 내보내기" disabled={busy} onPress={() => run(() => exportBackup(data))} />
           <Button label="백업 파일에서 복원" outline disabled={busy} onPress={restore} />
-          <Text style={styles.muted}>내보내기를 누르면 구글 드라이브, 카카오톡 ‘나와의 채팅’, 메일 등으로 저장할 수 있어요.</Text>
+          <Text style={styles.muted}>내보내기를 누르면 구글 드라이브, 카카오톡 ‘나와의 채팅’, 메일 등으로 저장할 수 있어요. 식사 사진과 AI 키는 백업 파일에 들어가지 않아요.</Text>
         </Card>
 
-        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.3</Text>
+        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.4</Text>
       </ScrollView>
     </View>
   );

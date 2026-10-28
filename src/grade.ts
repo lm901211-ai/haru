@@ -44,7 +44,6 @@ export type BodySummary = {
   weightChange?: number;
   sleepAvg?: number;
   stepsAvg?: number;
-  waterAvg?: number;
   exerciseMin: number;
   exerciseDays: number;
 };
@@ -165,7 +164,6 @@ function bodySummary(data: AppData, dates: string[]): BodySummary {
     weightChange: weights.length >= 2 ? weights[weights.length - 1] - weights[0] : undefined,
     sleepAvg: avg(logs.map((l) => l.sleepHours).filter((v): v is number => v != null)),
     stepsAvg: avg(logs.map((l) => l.steps).filter((v) => v > 0)),
-    waterAvg: avg(logs.map((l) => l.water).filter((v) => v > 0)),
     exerciseMin: exerciseByDay.reduce((a, b) => a + b, 0),
     exerciseDays: exerciseByDay.filter((m) => m > 0).length,
   };
@@ -177,7 +175,7 @@ const OVERALL_COMMENT: Record<Grade, string> = {
   B: '좋은 흐름이에요. 조금만 더 채우면 A 등급이에요.',
   C: '기본은 지켰지만 날마다 들쭉날쭉했어요.',
   D: '루틴이 많이 흔들렸어요. 한두 가지부터 다시 챙겨봐요.',
-  F: '이번엔 쉬어갔네요. 물 마시기처럼 쉬운 것부터 다시 시작해요. 🌱',
+  F: '이번엔 쉬어갔네요. 식사 기록처럼 쉬운 것부터 다시 시작해요. 🌱',
 };
 
 function comments(r: Omit<PeriodReport, 'comments'>): string[] {

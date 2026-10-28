@@ -22,7 +22,6 @@ const RECORD_OF: Record<ImportKind, RecordType> = {
   weight: 'Weight',
   sleep: 'SleepSession',
   exercise: 'ExerciseSession',
-  water: 'Hydration',
 };
 const KINDS = Object.keys(RECORD_OF) as ImportKind[];
 
@@ -171,16 +170,6 @@ export async function readHealthBatch(from: string, to: string, kinds: ImportKin
         if (hours > 0 && hours < 24) sums.add(toKey(end), r.metadata?.dataOrigin ?? '', hours);
       });
       out.sleep = sums.result((n) => Math.round(n * 10) / 10);
-    });
-  }
-  if (want.has('water')) {
-    await safe(async () => {
-      const sums = new MaxSourceSum();
-      (await readAll('Hydration', from, to)).forEach((r) => {
-        const ml = r.volume.inMilliliters;
-        if (ml > 0) sums.add(toKey(new Date(r.startTime)), r.metadata?.dataOrigin ?? '', ml);
-      });
-      out.water = Object.fromEntries(Object.entries(sums.result((n) => n)).map(([d, ml]) => [d, Math.round(ml / 250)]));
     });
   }
   if (want.has('exercise')) {

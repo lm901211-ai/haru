@@ -2,7 +2,7 @@
   "expo": {
     "name": "하루관리",
     "slug": "daily-app",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,20 +19,20 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.dailyapp.haru",
-      "versionCode": 4,
+      "versionCode": 5,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.VIBRATE",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_WEIGHT",
         "android.permission.health.READ_SLEEP",
         "android.permission.health.READ_EXERCISE",
-        "android.permission.health.READ_HYDRATION",
         "android.permission.health.READ_HEALTH_DATA_HISTORY"
       ]
     },
@@ -52,6 +52,15 @@
           "locationWhenInUsePermission": "현재 위치의 오늘 날씨를 보여드리기 위해 위치 정보를 사용합니다."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "식사 사진을 찍어 기록하기 위해 카메라를 사용합니다.",
+          "photosPermission": "앨범의 식사 사진을 골라 기록하기 위해 사진에 접근합니다.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-secure-store",
       "react-native-health-connect",
       [
         "expo-build-properties",

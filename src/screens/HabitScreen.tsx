@@ -65,7 +65,7 @@ export default function HabitScreen() {
           ))}
         </View>
         <View style={styles.row}>
-          <Input value={name} onChangeText={setName} placeholder="예: 물 2L 마시기" onSubmitEditing={() => submit()} style={{ flex: 1 }} />
+          <Input value={name} onChangeText={setName} placeholder="예: 아침 스트레칭" onSubmitEditing={() => submit()} style={{ flex: 1 }} />
           <Button label="추가" onPress={() => submit()} />
         </View>
         {data.habits.length > 0 && <Empty text="습관 이름을 길게 누르면 삭제할 수 있어요" />}

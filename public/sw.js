@@ -1,6 +1,6 @@
 // 하루관리 웹앱 서비스 워커
 // 인터넷이 되면 항상 최신 파일을 받고(네트워크 우선), 안 되면 저장해 둔 파일로 실행(오프라인)
-const CACHE = 'haru-1.0.3';
+const CACHE = 'haru-1.0.4';
 const SHELL = ['./', './index.html', './manifest.json', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {

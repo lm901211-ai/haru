@@ -6,7 +6,7 @@ export type RingKey = 'activity' | 'health' | 'routine';
 /** 애플/갤럭시 링처럼 하루를 3개 링으로 요약 (바깥 → 안쪽) */
 export const RINGS: { key: RingKey; label: string; desc: string; color: string; items: string[] }[] = [
   { key: 'activity', label: '활동', desc: '운동 · 걸음', color: '#F43F5E', items: ['exercise', 'steps'] },
-  { key: 'health', label: '건강', desc: '물 · 수면 · 식사', color: '#10B981', items: ['water', 'sleep', 'meals'] },
+  { key: 'health', label: '건강', desc: '수면 · 식사', color: '#10B981', items: ['sleep', 'meals'] },
   { key: 'routine', label: '루틴', desc: '할 일 · 습관 · 목표', color: '#3B82F6', items: ['todo', 'habit', 'goal'] },
 ];
 

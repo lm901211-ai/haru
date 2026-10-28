@@ -1,10 +1,19 @@
 export type MealType = '아침' | '점심' | '저녁' | '간식';
 
-export type Meal = { id: string; type: MealType; text: string; kcal?: number };
+export type Meal = {
+  id: string;
+  type: MealType;
+  text: string;
+  kcal?: number;
+  carbs?: number; // 탄수화물 g
+  protein?: number; // 단백질 g
+  fat?: number; // 지방 g
+  photo?: string; // 사진 저장 위치 (photos/photoStore 참고)
+  ai?: boolean; // 사진으로 AI가 추정한 값
+};
 export type Exercise = { id: string; name: string; minutes: number };
 
 export type DayLog = {
-  water: number; // 잔 수 (1잔 = 250ml)
   steps: number;
   sleepHours?: number;
   weight?: number;
@@ -29,7 +38,6 @@ export type Habit = {
 };
 
 export type Goals = {
-  waterCups: number;
   steps: number;
   exerciseMin: number;
   sleepHours: number;

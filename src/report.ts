@@ -1,4 +1,5 @@
 import { AppData } from './types';
+import { macroText, mealTotals } from './nutrition';
 
 export type ActivityRow = { icon: string; label: string; text: string };
 
@@ -14,11 +15,11 @@ export function dayActivities(data: AppData, date: string): ActivityRow[] {
     rows.push({ icon: '🏃', label: '운동', text: `${join(log.exercises.map((e) => `${e.name} ${e.minutes}분`))}${log.exercises.length > 1 ? ` (총 ${total}분)` : ''}` });
   }
   if (log?.meals.length) {
-    const kcal = log.meals.reduce((s, m) => s + (m.kcal ?? 0), 0);
-    rows.push({ icon: '🍚', label: '식사', text: `${join(log.meals.map((m) => `${m.type} ${m.text}`))}${kcal ? ` (${kcal.toLocaleString()}kcal)` : ''}` });
+    const t = mealTotals(log.meals);
+    const sum = join([t.kcal ? `${Math.round(t.kcal).toLocaleString()}kcal` : '', macroText(t)].filter(Boolean));
+    rows.push({ icon: '🍚', label: '식사', text: `${join(log.meals.map((m) => `${m.type} ${m.text}`))}${sum ? ` (${sum})` : ''}` });
   }
   const body: string[] = [];
-  if (log?.water) body.push(`물 ${log.water}잔`);
   if (log?.steps) body.push(`${log.steps.toLocaleString()}보`);
   if (log?.sleepHours != null) body.push(`수면 ${log.sleepHours}시간`);
   if (log?.weight != null) body.push(`체중 ${log.weight}kg`);

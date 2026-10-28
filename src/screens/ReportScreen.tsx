@@ -254,7 +254,6 @@ function BodyCard({ r }: { r: PeriodReport }) {
   items.push({ label: '운동', value: `${b.exerciseMin}분 · ${b.exerciseDays}일` });
   if (b.stepsAvg != null) items.push({ label: '평균 걸음', value: `${fmt(b.stepsAvg, 0)}보` });
   if (b.sleepAvg != null) items.push({ label: '평균 수면', value: `${fmt(b.sleepAvg)}시간` });
-  if (b.waterAvg != null) items.push({ label: '평균 물', value: `${fmt(b.waterAvg)}잔` });
   return (
     <Card title="📏 생활 기록">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

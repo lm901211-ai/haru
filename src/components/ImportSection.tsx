@@ -16,7 +16,7 @@ const RANGES: { days: number; label: string }[] = [
   { days: 365 * 5, label: '전체(5년)' },
 ];
 
-const KIND_NAMES: Record<ImportKind, string> = { steps: '걸음 수', weight: '체중', sleep: '수면', water: '물', exercise: '운동' };
+const KIND_NAMES: Record<ImportKind, string> = { steps: '걸음 수', weight: '체중', sleep: '수면', exercise: '운동' };
 const FILE_KIND_NAMES = { samsung: '삼성 헬스', apple: '애플 건강', csv: 'CSV', unknown: '알 수 없는 파일' } as const;
 
 const dotDate = (key: string) => {
@@ -104,7 +104,7 @@ export function ImportSection() {
 
   return (
     <Card title="📥 다른 앱 기록 가져오기">
-      <Text style={{ color: colors.text, lineHeight: 20 }}>삼성 헬스, 앳플리 같은 다른 앱에 쌓인 걸음 수·체중·수면·운동·물 기록을 과거 기록까지 가져와요.</Text>
+      <Text style={{ color: colors.text, lineHeight: 20 }}>삼성 헬스, 앳플리 같은 다른 앱에 쌓인 걸음 수·체중·수면·운동 기록을 과거 기록까지 가져와요.</Text>
 
       {pending && <ImportPreview pending={pending} mode={mode} setMode={setMode} onCancel={() => setPending(null)} onConfirm={confirm} />}
 

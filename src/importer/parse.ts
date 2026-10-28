@@ -2,7 +2,6 @@ import { Exercise } from '../types';
 import { toKey } from '../date';
 import { emptyBatch, ImportBatch, IMPORTED_PREFIX } from './batch';
 
-const CUP_ML = 250;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /* ---------------- CSV ---------------- */
@@ -193,15 +192,6 @@ export function parseSamsungCsv(name: string, text: string): ImportBatch {
       sums.add(st.date, daily ? `${r[iSrc] ?? ''}#${st.time}` : (r[iSrc] ?? ''), c);
     });
     out.steps = sums.result();
-  } else if (/water_intake/.test(lower)) {
-    const iAmount = col(t, 'amount');
-    const sums = new MaxSourceSum();
-    t.rows.forEach((r) => {
-      const st = stampOf(r);
-      const ml = num(r[iAmount]);
-      if (st && ml && ml > 0) sums.add(st.date, 'all', ml);
-    });
-    out.water = Object.fromEntries(Object.entries(sums.result((n) => n)).map(([d, ml]) => [d, Math.round(ml / CUP_ML)]));
   } else if (/shealth\.sleep\.|shealth\.sleep$|health\.sleep\./.test(lower) && !/stage|combined|goal|snoring/.test(lower)) {
     const iEnd = col(t, 'end_time');
     const sums = new MaxSourceSum();
@@ -313,7 +303,6 @@ export class AppleHealthParser {
   private steps = new MaxSourceSum();
   private weights = new FirstOfDay();
   private sleep = new MaxSourceSum();
-  private water = new MaxSourceSum();
   private exercise: Record<string, Exercise[]> = {};
   records = 0;
 
@@ -338,11 +327,6 @@ export class AppleHealthParser {
         case 'HKQuantityTypeIdentifierBodyMass':
           if (v > 0) this.weights.add({ date: toKey(start), time: start.getTime() }, a.unit === 'lb' ? v * 0.45359237 : v);
           break;
-        case 'HKQuantityTypeIdentifierDietaryWater': {
-          const ml = a.unit === 'L' ? v * 1000 : a.unit === 'fl_oz_us' ? v * 29.5735 : v;
-          if (ml > 0) this.water.add(toKey(start), a.sourceName ?? '', ml);
-          break;
-        }
         case 'HKCategoryTypeIdentifierSleepAnalysis':
           if (end && /Asleep/.test(a.value ?? '')) this.sleep.add(toKey(end), a.sourceName ?? '', (end.getTime() - start.getTime()) / 3600000);
           break;
@@ -371,7 +355,6 @@ export class AppleHealthParser {
       steps: this.steps.result(),
       weight: this.weights.result(),
       sleep: this.sleep.result(round1),
-      water: Object.fromEntries(Object.entries(this.water.result((n) => n)).map(([d, ml]) => [d, Math.round(ml / CUP_ML)])),
       exercise: this.exercise,
     };
   }

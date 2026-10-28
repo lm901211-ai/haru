@@ -6,7 +6,6 @@ export type ImportBatch = {
   steps: Record<string, number>;
   weight: Record<string, number>; // kg, 그날 첫 측정값
   sleep: Record<string, number>; // 시간, 깬 날짜 기준
-  water: Record<string, number>; // 잔(250ml)
   exercise: Record<string, Exercise[]>; // id 는 IMPORTED_PREFIX 로 시작
 };
 
@@ -18,17 +17,16 @@ export const IMPORT_KINDS: { kind: ImportKind; label: string; unit: string }[] =
   { kind: 'steps', label: '👟 걸음 수', unit: '일' },
   { kind: 'weight', label: '⚖️ 체중', unit: '일' },
   { kind: 'sleep', label: '😴 수면', unit: '일' },
-  { kind: 'water', label: '💧 물', unit: '일' },
   { kind: 'exercise', label: '🏃 운동', unit: '일' },
 ];
 
-export const emptyBatch = (): ImportBatch => ({ steps: {}, weight: {}, sleep: {}, water: {}, exercise: {} });
+export const emptyBatch = (): ImportBatch => ({ steps: {}, weight: {}, sleep: {}, exercise: {} });
 
-/** 여러 파일에서 나온 기록을 합침 (같은 날이 겹치면 걸음·물·수면은 큰 값, 체중은 먼저 것, 운동은 id 로 중복 제거) */
+/** 여러 파일에서 나온 기록을 합침 (같은 날이 겹치면 걸음·수면은 큰 값, 체중은 먼저 것, 운동은 id 로 중복 제거) */
 export function combineBatches(batches: ImportBatch[]): ImportBatch {
   const out = emptyBatch();
   for (const b of batches) {
-    for (const k of ['steps', 'sleep', 'water'] as const) {
+    for (const k of ['steps', 'sleep'] as const) {
       Object.entries(b[k]).forEach(([d, v]) => (out[k][d] = Math.max(out[k][d] ?? 0, v)));
     }
     Object.entries(b.weight).forEach(([d, v]) => (out.weight[d] ??= v));
@@ -62,7 +60,7 @@ export type ImportResult = { data: AppData; changed: Record<ImportKind, number> 
 export function applyImport(data: AppData, b: ImportBatch, modes: Partial<Record<ImportKind, ImportMode>> | ImportMode): ImportResult {
   const modeOf = (k: ImportKind): ImportMode => (typeof modes === 'string' ? modes : (modes[k] ?? 'fill'));
   const logs = { ...data.logs };
-  const changed: Record<ImportKind, number> = { steps: 0, weight: 0, sleep: 0, water: 0, exercise: 0 };
+  const changed: Record<ImportKind, number> = { steps: 0, weight: 0, sleep: 0, exercise: 0 };
   const edit = (date: string, fn: (l: DayLog) => DayLog | null, kind: ImportKind) => {
     const before = logs[date] ?? emptyLog();
     const after = fn(before);
@@ -80,9 +78,6 @@ export function applyImport(data: AppData, b: ImportBatch, modes: Partial<Record
   );
   Object.entries(b.sleep).forEach(([d, v]) =>
     edit(d, (l) => (l.sleepHours !== v && (modeOf('sleep') === 'overwrite' || l.sleepHours == null) ? { ...l, sleepHours: v } : null), 'sleep'),
-  );
-  Object.entries(b.water).forEach(([d, v]) =>
-    edit(d, (l) => (v > 0 && l.water !== v && (modeOf('water') === 'overwrite' || !(l.water > 0)) ? { ...l, water: v } : null), 'water'),
   );
   Object.entries(b.exercise).forEach(([d, list]) =>
     edit(
