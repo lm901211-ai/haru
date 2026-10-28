@@ -2,7 +2,7 @@
   "expo": {
     "name": "하루관리",
     "slug": "daily-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,13 +19,21 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.dailyapp.haru",
-      "versionCode": 3,
+      "versionCode": 4,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.VIBRATE",
         "android.permission.ACTIVITY_RECOGNITION"
+      ],
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_HYDRATION",
+        "android.permission.health.READ_HEALTH_DATA_HISTORY"
       ]
     },
     "web": {
@@ -42,6 +50,15 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "현재 위치의 오늘 날씨를 보여드리기 위해 위치 정보를 사용합니다."
+        }
+      ],
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ]
     ]

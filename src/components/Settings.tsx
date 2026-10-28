@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, NumberField, styles } from './ui';
 import { useStore } from '../store';
 import { exportBackup, pickBackup } from '../backup';
+import { ImportSection } from './ImportSection';
 import { colors } from '../theme';
 import { Goals } from '../types';
 
@@ -85,6 +86,8 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <Text style={styles.muted}>하루 점수와 그래프의 목표선에 쓰여요.</Text>
         </Card>
 
+        <ImportSection />
+
         <Card title="💾 데이터 백업">
           <Text style={{ color: colors.text, lineHeight: 20 }}>
             모든 기록은 이 휴대폰 안에만 저장돼요. 앱을 지우거나 휴대폰을 바꾸기 전에 백업 파일을 만들어 두세요.
@@ -97,7 +100,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <Text style={styles.muted}>내보내기를 누르면 구글 드라이브, 카카오톡 ‘나와의 채팅’, 메일 등으로 저장할 수 있어요.</Text>
         </Card>
 
-        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.2</Text>
+        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.3</Text>
       </ScrollView>
     </View>
   );

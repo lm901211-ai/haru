@@ -14,11 +14,13 @@ import TodoScreen from './src/screens/TodoScreen';
 import HabitScreen from './src/screens/HabitScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
+import { useHealthAutoSync } from './src/health/useHealthAutoSync';
 
 function Main() {
   const { loaded } = useStore();
   const [tab, setTab] = useState<Tab>('today');
   const insets = useSafeAreaInsets();
+  useHealthAutoSync();
 
   // Android 뒤로가기: 다른 탭에서는 홈으로, 홈에서는 기본 동작(앱 종료)
   useEffect(() => {

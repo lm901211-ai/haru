@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { notify } from '../dialog';
+import { getGrantedKinds, getHealthStatus, readHealthBatch, requestHealthAccess } from '../health/healthConnect';
 import { Pedometer } from 'expo-sensors';
 import { Button, Card, DateNav, DeleteX, Empty, Input, NumberField, ProgressBar, Screen, styles } from '../components/ui';
 import { TrendCard } from '../components/charts';
@@ -46,6 +47,21 @@ export default function ExerciseScreen() {
 
   const syncSteps = async () => {
     try {
+      if (Platform.OS === 'android') {
+        // 삼성 헬스 등에서 헬스 커넥트로 보낸 걸음 수
+        const status = await getHealthStatus();
+        if (status !== 'available') {
+          return notify('헬스 커넥트가 필요해요', status === 'needs-update' ? '헬스 커넥트 앱을 업데이트해 주세요.' : 'Play 스토어에서 "헬스 커넥트" 앱을 설치해 주세요.');
+        }
+        let kinds = await getGrantedKinds();
+        if (!kinds.includes('steps')) kinds = await requestHealthAccess();
+        if (!kinds.includes('steps')) return notify('걸음 수 권한이 필요해요', '헬스 커넥트에서 하루관리의 걸음 수 읽기를 허용해 주세요.');
+        const batch = await readHealthBatch(date, date, ['steps']);
+        const steps = batch.steps[date];
+        if (!steps) return notify('걸음 수 불러오기', '이 날짜의 걸음 수 기록이 헬스 커넥트에 없어요. 삼성 헬스 → 설정 → 헬스 커넥트에서 걸음 수 공유가 켜져 있는지 확인해 주세요.');
+        update((l) => ({ ...l, steps }));
+        return;
+      }
       const steps = await readDeviceSteps(date);
       update((l) => ({ ...l, steps }));
     } catch (e) {
@@ -84,6 +100,7 @@ export default function ExerciseScreen() {
         <ProgressBar value={log.steps} max={goals.steps} color={colors.steps} />
         <NumberField key={date} value={log.steps || undefined} placeholder="걸음 수 입력" unit="보" onCommit={(v) => update((l) => ({ ...l, steps: v ?? 0 }))} />
         {Platform.OS === 'ios' && <Button label="휴대폰 만보기에서 불러오기" small outline color={colors.steps} onPress={syncSteps} />}
+        {Platform.OS === 'android' && <Button label="삼성 헬스 · 헬스 커넥트에서 불러오기" small outline color={colors.steps} onPress={syncSteps} />}
       </Card>
 
       <TrendCard title="운동 시간 추이" unit="분" color={colors.exercise} kind="bar" mode="amount" goal={goals.exerciseMin} getValue={minutesOf} />

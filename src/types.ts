@@ -52,8 +52,14 @@ export type StreakChallenge = ChallengeBase & { kind: 'streak'; mode: 'consecuti
 export type AmountChallenge = ChallengeBase & { kind: 'amount'; unit: string; target: number; entries: Record<string, number> };
 export type Challenge = WeightChallenge | StreakChallenge | AmountChallenge;
 
+export type SyncSettings = {
+  healthConnect?: boolean; // 앱을 열 때 헬스 커넥트에서 최근 기록 자동으로 가져오기
+  lastSyncAt?: string; // ISO 시각
+};
+
 export type AppData = {
   profile: Profile;
+  sync?: SyncSettings;
   logs: Record<string, DayLog>;
   todos: Todo[];
   habits: Habit[];

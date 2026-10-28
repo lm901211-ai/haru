@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppData, Challenge, DayLog, Goals, Habit, Profile, Todo } from './types';
+import { AppData, Challenge, DayLog, Goals, Habit, Profile, SyncSettings, Todo } from './types';
+import { applyImport, ImportBatch, ImportKind, ImportMode } from './importer/batch';
 import { newId, todayKey } from './date';
+import { emptyLog } from './logs';
 
 const STORAGE_KEY = 'daily-app/v1';
 
 const defaultGoals: Goals = { waterCups: 8, steps: 8000, exerciseMin: 30, sleepHours: 7 };
 const emptyData: AppData = { profile: {}, logs: {}, todos: [], habits: [], goals: defaultGoals, challenges: [] };
-export const emptyLog = (): DayLog => ({ water: 0, steps: 0, meals: [], exercises: [] });
 
 type Store = {
   data: AppData;
@@ -17,6 +18,9 @@ type Store = {
   setGoals: (goals: Goals) => void;
   setProfile: (profile: Profile) => void;
   replaceAll: (data: AppData) => void;
+  setSync: (patch: SyncSettings) => void;
+  /** 다른 앱에서 가져온 기록을 반영하고, 바뀐 날 수를 돌려줌 */
+  importBatch: (batch: ImportBatch, modes: Partial<Record<ImportKind, ImportMode>> | ImportMode) => Record<ImportKind, number>;
   addTodo: (title: string, date: string) => void;
   updateTodo: (id: string, patch: Partial<Todo>) => void;
   deleteTodo: (id: string) => void;
@@ -73,6 +77,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const setSync = useCallback((patch: SyncSettings) => setData((d) => ({ ...d, sync: { ...d.sync, ...patch } })), []);
+
+  // 바뀐 개수는 지금 데이터 기준으로 계산하고, 실제 반영은 최신 상태에 다시 적용
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+  const importBatch = useCallback((batch: ImportBatch, modes: Partial<Record<ImportKind, ImportMode>> | ImportMode) => {
+    const { changed } = applyImport(dataRef.current, batch, modes);
+    setData((d) => applyImport(d, batch, modes).data);
+    return changed;
+  }, []);
+
   const addTodo = useCallback((title: string, date: string) => {
     const todo: Todo = { id: newId(), title, date, done: false, important: false };
     setData((d) => ({ ...d, todos: [...d.todos, todo] }));
@@ -118,7 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StoreContext.Provider
-      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, replaceAll, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit, addChallenge, updateChallenge, deleteChallenge }}
+      value={{ data, loaded, getLog, updateLog, setGoals, setProfile, replaceAll, setSync, importBatch, addTodo, updateTodo, deleteTodo, addHabit, toggleHabit, deleteHabit, addChallenge, updateChallenge, deleteChallenge }}
     >
       {children}
     </StoreContext.Provider>
