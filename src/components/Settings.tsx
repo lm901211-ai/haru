@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { confirmAction, notify } from '../dialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Card, NumberField, styles } from './ui';
+import { Button, Card, dialogName, headingLevel, NumberField, styles } from './ui';
 import { useStore } from '../store';
 import { exportBackup, pickBackup } from '../backup';
 import { ImportSection } from './ImportSection';
 import { AiSettingsCard } from './AiSettingsCard';
-import { colors } from '../theme';
+import { colors, plain } from '../theme';
 import { Goals } from '../types';
 
 const GOAL_FIELDS: { k: keyof Goals; label: string; unit: string; decimal?: boolean }[] = [
@@ -20,10 +20,10 @@ export function SettingsButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} hitSlop={10} style={{ padding: 6 }}>
+      <Pressable role="button" aria-label="설정" onPress={() => setOpen(true)} hitSlop={6} style={{ padding: 8 }}>
         <Text style={{ fontSize: 24 }}>⚙️</Text>
       </Pressable>
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} {...dialogName('설정')}>
         <SettingsSheet onClose={() => setOpen(false)} />
       </Modal>
     </>
@@ -61,7 +61,9 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, gap: 12 }} keyboardShouldPersistTaps="handled">
         <View style={[styles.row, { justifyContent: 'space-between' }]}>
-          <Text style={styles.screenTitle}>설정</Text>
+          <Text role="heading" {...headingLevel(1)} style={styles.screenTitle}>
+            설정
+          </Text>
           <Button label="닫기" small outline onPress={onClose} />
         </View>
 
@@ -69,7 +71,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <View style={styles.row}>
             <Text style={{ width: 80, color: colors.text }}>키</Text>
             <View style={{ flex: 1 }}>
-              <NumberField decimal value={data.profile.heightCm} placeholder="예: 170" unit="cm" onCommit={(v) => setProfile({ ...data.profile, heightCm: v })} />
+              <NumberField decimal value={data.profile.heightCm} label="키" placeholder="예: 170" unit="cm" onCommit={(v) => setProfile({ ...data.profile, heightCm: v })} />
             </View>
           </View>
         </Card>
@@ -79,7 +81,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <View key={f.k} style={styles.row}>
               <Text style={{ width: 80, color: colors.text }}>{f.label}</Text>
               <View style={{ flex: 1 }}>
-                <NumberField decimal={f.decimal} value={data.goals[f.k]} unit={f.unit} onCommit={(v) => v && setGoals({ ...data.goals, [f.k]: v })} />
+                <NumberField decimal={f.decimal} value={data.goals[f.k]} label={`하루 ${plain(f.label)} 목표`} unit={f.unit} onCommit={(v) => v && setGoals({ ...data.goals, [f.k]: v })} />
               </View>
             </View>
           ))}
@@ -102,7 +104,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <Text style={styles.muted}>내보내기를 누르면 구글 드라이브, 카카오톡 ‘나와의 채팅’, 메일 등으로 저장할 수 있어요. 식사 사진과 AI 키는 백업 파일에 들어가지 않아요.</Text>
         </Card>
 
-        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.4</Text>
+        <Text style={[styles.muted, { textAlign: 'center' }]}>하루관리 1.0.5</Text>
       </ScrollView>
     </View>
   );

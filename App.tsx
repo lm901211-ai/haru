@@ -39,9 +39,13 @@ function Main() {
   const renderTab = (t: (typeof TABS)[number]) => {
     const active = t.key === tab;
     return (
-      <Pressable key={t.key} onPress={() => setTab(t.key)} style={styles.tabItem}>
-        <Text style={[styles.tabIcon, !active && { opacity: 0.4 }]}>{t.icon}</Text>
-        <Text style={[styles.tabLabel, active && { color: colors.primary }]} numberOfLines={1}>
+      <Pressable key={t.key} role="tab" aria-selected={active} aria-label={t.label} onPress={() => setTab(t.key)} style={styles.tabItem}>
+        <View style={[styles.tabPill, active && styles.tabPillActive]} aria-hidden>
+          <Text style={[styles.tabIcon, !active && { opacity: 0.55 }]} maxFontSizeMultiplier={1.1}>
+            {t.icon}
+          </Text>
+        </View>
+        <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
           {t.label}
         </Text>
       </Pressable>
@@ -69,16 +73,22 @@ function Main() {
         {tab === 'habit' && <HabitScreen />}
         {tab === 'report' && <ReportScreen />}
       </View>
-      <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-        {/* 홈 버튼이 정가운데에 오도록 좌우 탭 묶음을 같은 폭으로 나눔 */}
-        <View style={styles.tabGroup}>{left.map(renderTab)}</View>
-        <Pressable onPress={() => setTab(home.key)} style={styles.homeSlot}>
-          <View style={[styles.homeButton, tab === home.key && styles.homeButtonActive]}>
-            <Text style={{ fontSize: 26 }}>{home.icon}</Text>
-          </View>
-          <Text style={[styles.tabLabel, { fontWeight: '800', fontSize: 13 }, tab === home.key && { color: colors.primary }]}>{home.label}</Text>
-        </Pressable>
-        <View style={styles.tabGroup}>{right.map(renderTab)}</View>
+      <View role="navigation" aria-label="메뉴">
+        <View role="tablist" style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+          {/* 홈 버튼이 정가운데에 오도록 좌우 탭 묶음을 같은 폭으로 나눔 */}
+          <View style={styles.tabGroup}>{left.map(renderTab)}</View>
+          <Pressable role="tab" aria-selected={tab === home.key} aria-label={home.label} onPress={() => setTab(home.key)} style={styles.homeSlot}>
+            <View style={[styles.homeButton, tab === home.key && styles.homeButtonActive]} aria-hidden>
+              <Text style={{ fontSize: 26 }} maxFontSizeMultiplier={1.1}>
+                {home.icon}
+              </Text>
+            </View>
+            <Text style={[styles.tabLabel, { fontWeight: '800', fontSize: 12 }, tab === home.key && styles.tabLabelActive]} maxFontSizeMultiplier={1.2}>
+              {home.label}
+            </Text>
+          </Pressable>
+          <View style={styles.tabGroup}>{right.map(renderTab)}</View>
+        </View>
       </View>
     </View>
   );
@@ -97,27 +107,34 @@ export default function App() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
-  tabBar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6 },
+  tabBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: colors.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingTop: 6,
+    boxShadow: '0px -2px 12px rgba(22, 34, 64, 0.06)',
+  },
   tabGroup: { flex: 1, flexDirection: 'row', alignItems: 'flex-end' },
-  tabItem: { flex: 1, alignItems: 'center', gap: 2 },
-  homeSlot: { width: 64, alignItems: 'center', gap: 2 },
-  tabIcon: { fontSize: 20 },
+  tabItem: { flex: 1, alignItems: 'center', gap: 2, minHeight: 48 },
+  tabPill: { width: 40, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  tabPillActive: { backgroundColor: colors.primarySoft },
+  homeSlot: { width: 66, alignItems: 'center', gap: 2 },
+  tabIcon: { fontSize: 19 },
   tabLabel: { fontSize: 11, fontWeight: '600', color: colors.sub },
+  tabLabelActive: { color: colors.primary, fontWeight: '800' },
   homeButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    marginTop: -24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginTop: -26,
     backgroundColor: colors.card,
     borderWidth: 3,
     borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    boxShadow: '0px 4px 14px rgba(22, 34, 64, 0.16)',
   },
-  homeButtonActive: { borderColor: colors.primary, backgroundColor: '#EEF3FF' },
+  homeButtonActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
 });

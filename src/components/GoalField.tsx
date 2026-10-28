@@ -12,7 +12,7 @@ export function GoalField({ k, unit, decimal }: { k: keyof Goals; unit: string; 
   const value = data.goals[k];
   if (!editing) {
     return (
-      <Pressable onPress={() => setEditing(true)} hitSlop={8}>
+      <Pressable role="button" aria-label={`목표 ${value.toLocaleString()}${unit}, 눌러서 바꾸기`} onPress={() => setEditing(true)} hitSlop={10}>
         <Text style={styles.muted}>
           목표 {value.toLocaleString()}{unit} <Text style={{ color: colors.primary }}>✎</Text>
         </Text>

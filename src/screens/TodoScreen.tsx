@@ -65,14 +65,21 @@ export default function TodoScreen() {
 export function TodoRow({ todo, onToggle, onStar, onDelete }: { todo: Todo; onToggle: () => void; onStar?: () => void; onDelete?: () => void }) {
   return (
     <View style={styles.listItem}>
-      <Pressable onPress={onToggle} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+      <Pressable
+        role="checkbox"
+        aria-checked={todo.done}
+        aria-label={todo.important ? `${todo.title}, 중요` : todo.title}
+        onPress={onToggle}
+        hitSlop={8}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minHeight: 36 }}
+      >
         <View
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
+            width: 24,
+            height: 24,
+            borderRadius: 7,
             borderWidth: 2,
-            borderColor: todo.done ? colors.primary : colors.line,
+            borderColor: todo.done ? colors.primary : colors.outline,
             backgroundColor: todo.done ? colors.primary : 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
@@ -85,11 +92,11 @@ export function TodoRow({ todo, onToggle, onStar, onDelete }: { todo: Todo; onTo
         </Text>
       </Pressable>
       {onStar && (
-        <Pressable onPress={onStar} hitSlop={8}>
-          <Text style={{ fontSize: 18, color: todo.important ? colors.star : colors.line }}>★</Text>
+        <Pressable role="checkbox" aria-checked={todo.important} aria-label={`${todo.title} 중요 표시`} onPress={onStar} hitSlop={10} style={{ padding: 4 }}>
+          <Text style={{ fontSize: 20, color: todo.important ? colors.star : colors.outline }}>{todo.important ? '★' : '☆'}</Text>
         </Pressable>
       )}
-      {onDelete && <DeleteX onPress={onDelete} />}
+      {onDelete && <DeleteX label={`${todo.title} 삭제`} onPress={onDelete} />}
     </View>
   );
 }

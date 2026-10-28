@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { confirmAction, notify } from '../dialog';
-import { Button, Card, Chip, Input, NumberField, ProgressBar, Screen, styles, WeekDots } from '../components/ui';
+import { Button, Card, Chip, DeleteX, Input, NumberField, ProgressBar, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { challengeProgress, currentWeight, STATUS_TEXT, termOf } from '../challenges';
 import { addDays, addMonths, formatKey, fromKey, newId, startOfWeek, todayKey } from '../date';
-import { colors } from '../theme';
+import { colors, ink } from '../theme';
 import { Challenge } from '../types';
 
 type Kind = Challenge['kind'];
@@ -51,25 +51,26 @@ export default function GoalScreen() {
         const barColor = p.status === 'done' ? colors.steps : p.status === 'behind' ? colors.exercise : colors.primary;
         return (
           <Card key={c.id}>
-            <Pressable onLongPress={() => confirmDelete(c)} style={{ gap: 10 }}>
+            <View style={{ gap: 10 }}>
               <View style={[styles.row, { justifyContent: 'space-between' }]}>
                 <View style={{ flex: 1, gap: 4 }}>
                   <View style={styles.row}>
-                    <View style={{ backgroundColor: p.term === '장기' ? '#EDE8FF' : '#E6F7EE', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: p.term === '장기' ? colors.sleep : colors.steps }}>{p.term}</Text>
+                    <View style={{ backgroundColor: p.term === '장기' ? '#EDE8FF' : '#E6F7EE', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: ink(p.term === '장기' ? colors.sleep : colors.steps) }}>{p.term}</Text>
                     </View>
                     <Text style={styles.muted}>{p.dayLabel}</Text>
                   </View>
-                  <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>
+                  <Text role="heading" style={{ fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: -0.3 }}>
                     {c.emoji} {c.title}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 28, fontWeight: '900', color: barColor }}>{pct}%</Text>
-                  {STATUS_TEXT[p.status] ? <Text style={{ fontSize: 12, fontWeight: '700', color: barColor }}>{STATUS_TEXT[p.status]}</Text> : null}
+                  <Text style={{ fontSize: 30, fontWeight: '900', color: ink(barColor), letterSpacing: -1 }}>{pct}%</Text>
+                  {STATUS_TEXT[p.status] ? <Text style={{ fontSize: 12, fontWeight: '700', color: ink(barColor) }}>{STATUS_TEXT[p.status]}</Text> : null}
                 </View>
+                <DeleteX label={`${c.title} 목표 삭제`} onPress={() => confirmDelete(c)} />
               </View>
-              <ProgressBar value={p.ratio} max={1} color={barColor} height={12} marker={p.expected} />
+              <ProgressBar value={p.ratio} max={1} color={barColor} height={12} marker={p.expected} label={`${c.title} 달성률`} />
               {p.expected != null && p.status !== 'done' && (
                 <Text style={[styles.muted, { fontSize: 12 }]}>│ 표시는 기간상 지금쯤 와 있어야 할 지점({Math.round(p.expected * 100)}%)</Text>
               )}
@@ -80,12 +81,13 @@ export default function GoalScreen() {
                   </Text>
                 ))}
               </View>
-            </Pressable>
+            </View>
 
             {c.kind === 'weight' && (
               <NumberField
                 decimal
                 value={data.logs[today]?.weight}
+                label="오늘 체중"
                 placeholder={`오늘 체중 (최근 ${currentWeight(data, c)}kg)`}
                 unit="kg"
                 onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))}
@@ -112,7 +114,6 @@ export default function GoalScreen() {
       })}
 
       {data.challenges.length > 0 && !showForm && <Button label="＋ 새 목표 만들기" onPress={() => setShowForm(true)} />}
-      {data.challenges.length > 0 && <Text style={[styles.muted, { textAlign: 'center' }]}>목표 카드를 길게 누르면 삭제할 수 있어요</Text>}
 
       {showForm && (
         <NewChallengeForm
@@ -141,13 +142,22 @@ function StartDatePicker({ value, onChange }: { value: string; onChange: (d: str
   ];
   return (
     <View style={{ gap: 8 }}>
-      <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6 }]}>
-        <Pressable onPress={() => onChange(addDays(value, -1))} disabled={value <= today} hitSlop={10}>
-          <Text style={{ fontSize: 24, color: value <= today ? colors.line : colors.primary }}>‹</Text>
+      <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 14, padding: 6 }]}>
+        <Pressable
+          role="button"
+          aria-label="시작일 하루 앞으로"
+          aria-disabled={value <= today}
+          onPress={() => onChange(addDays(value, -1))}
+          disabled={value <= today}
+          style={({ pressed }) => [styles.navButton, { backgroundColor: '#fff' }, value <= today && { opacity: 0.35 }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={styles.dateArrow}>‹</Text>
         </Pressable>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{formatKey(value)}</Text>
-        <Pressable onPress={() => onChange(addDays(value, 1))} hitSlop={10}>
-          <Text style={{ fontSize: 24, color: colors.primary }}>›</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }} aria-label={`시작일 ${formatKey(value)}`}>
+          {formatKey(value)}
+        </Text>
+        <Pressable role="button" aria-label="시작일 하루 뒤로" onPress={() => onChange(addDays(value, 1))} style={({ pressed }) => [styles.navButton, { backgroundColor: '#fff' }, pressed && { opacity: 0.6 }]}>
+          <Text style={styles.dateArrow}>›</Text>
         </Pressable>
       </View>
       <View style={[styles.row, { flexWrap: 'wrap' }]}>

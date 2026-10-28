@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
-import { Card, Chip, GradeBadge, Screen, styles } from '../components/ui';
+import { Card, Chip, GradeBadge, headingLevel, Screen, styles } from '../components/ui';
 import { useStore } from '../store';
 import { dayRings, DayRings, RINGS, ringClosed, ringSummary } from '../rings';
 import { challengeEnd, challengeProgress, STATUS_TEXT } from '../challenges';
@@ -9,7 +9,7 @@ import { dayActivities } from '../report';
 import { firstUseDate, gradeOf, periodReport } from '../grade';
 import { dayScore } from '../score';
 import { dayDiff, formatKey, fromKey, monthDates, shortDate, todayKey } from '../date';
-import { colors, HIGHLIGHTERS } from '../theme';
+import { colors, HIGHLIGHTERS, ink } from '../theme';
 import { Challenge } from '../types';
 
 const WEEK_HEAD = ['월', '화', '수', '목', '금', '토', '일'];
@@ -73,18 +73,26 @@ export default function CalendarScreen() {
 
   return (
     <Screen title="달력">
-      <View style={[styles.row, { justifyContent: 'space-between' }]}>
-        <Pressable onPress={() => changeMonth(offset + 1)} hitSlop={12}>
-          <Text style={{ color: colors.primary, fontSize: 26 }}>‹</Text>
+      <View style={[styles.dateNav, { paddingHorizontal: 8 }]}>
+        <Pressable role="button" aria-label="이전 달" onPress={() => changeMonth(offset + 1)} hitSlop={6} style={({ pressed }) => [styles.navButton, pressed && { opacity: 0.6 }]}>
+          <Text style={styles.dateArrow}>‹</Text>
         </Pressable>
         <View style={[styles.row, { gap: 8 }]}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text }}>
+          <Text role="heading" {...headingLevel(2)} style={{ fontSize: 18, fontWeight: '800', color: colors.text }}>
             {month.getFullYear()}년 {month.getMonth() + 1}월
           </Text>
-          {offset !== 0 && <Chip label="오늘" active={false} onPress={() => changeMonth(0)} />}
+          {offset !== 0 && <Chip label="오늘" active={false} onPress={() => changeMonth(0)} a11yRole="button" a11yLabel="이번 달로 돌아가기" />}
         </View>
-        <Pressable onPress={() => changeMonth(offset - 1)} hitSlop={12} disabled={offset <= -12}>
-          <Text style={{ color: offset <= -12 ? colors.line : colors.primary, fontSize: 26 }}>›</Text>
+        <Pressable
+          role="button"
+          aria-label="다음 달"
+          aria-disabled={offset <= -12}
+          onPress={() => changeMonth(offset - 1)}
+          hitSlop={6}
+          disabled={offset <= -12}
+          style={({ pressed }) => [styles.navButton, offset <= -12 && { opacity: 0.35 }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={styles.dateArrow}>›</Text>
         </Pressable>
       </View>
 
@@ -126,7 +134,7 @@ function MonthSummary({ dates, offset, goals }: { dates: string[]; offset: numbe
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         {RINGS.map((r) => (
           <View key={r.key} style={[styles.row, { gap: 6 }]}>
-            <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 4, borderColor: r.color }} />
+            <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 4, borderColor: r.color }} aria-hidden />
             <Text style={{ fontSize: 13, color: colors.text }}>
               {r.label} <Text style={{ fontWeight: '800' }}>{sum.counts[r.key]}일</Text>
             </Text>
@@ -182,7 +190,7 @@ function MonthGrid({
     <View style={{ gap: 2 }}>
       <View style={{ flexDirection: 'row' }}>
         {WEEK_HEAD.map((w, i) => (
-          <Text key={w} style={{ flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: i === 6 ? colors.danger : i === 5 ? colors.primary : colors.sub }}>
+          <Text key={w} aria-hidden style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '700', color: i === 6 ? ink(colors.danger) : i === 5 ? colors.primary : colors.sub }} maxFontSizeMultiplier={1.2}>
             {w}
           </Text>
         ))}
@@ -232,14 +240,27 @@ function DayCell({
   const isToday = date === today;
   const present = rings ? RINGS.filter((r) => rings[r.key] != null) : [];
   const star = rings?.hasRecord && present.length > 0 && present.every((r) => ringClosed(rings[r.key]));
-  const dateColor = status !== 'past' && !isToday ? colors.sub : dow === 0 ? colors.danger : dow === 6 ? colors.primary : colors.text;
+  const dateColor = status !== 'past' && !isToday ? colors.sub : dow === 0 ? ink(colors.danger) : dow === 6 ? colors.primary : colors.text;
+  const pct = (v?: number) => (v == null ? '없음' : `${Math.round(v * 100)}%`);
+  const summary =
+    status === 'before'
+      ? '기록 시작 전'
+      : status === 'future' && !isToday
+        ? '다가오는 날'
+        : rings?.hasRecord
+          ? `${rings.score}점, ${RINGS.map((r) => `${r.label} ${pct(rings[r.key])}`).join(', ')}${star ? ', 링 모두 채움' : ''}`
+          : '기록 없음';
   return (
     <Pressable
+      role="button"
+      aria-label={`${formatKey(date)}${isToday ? ' 오늘' : ''}${selected ? ' 선택됨' : ''}. ${summary}`}
       onPress={onPress}
-      style={{ flex: 1, alignItems: 'center', paddingVertical: 3, borderRadius: 10, backgroundColor: selected ? '#E9EFFF' : 'transparent' }}
+      style={{ flex: 1, alignItems: 'center', paddingVertical: 3, borderRadius: 12, backgroundColor: selected ? colors.primarySoft : 'transparent' }}
     >
-      <View style={[{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, isToday && { backgroundColor: colors.primary }]}>
-        <Text style={{ fontSize: 11, fontWeight: '700', color: isToday ? '#fff' : dateColor }}>{fromKey(date).getDate()}</Text>
+      <View style={[{ width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, isToday && { backgroundColor: colors.primary }]}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#fff' : dateColor }} maxFontSizeMultiplier={1.2}>
+          {fromKey(date).getDate()}
+        </Text>
       </View>
       <View style={{ height: 34, justifyContent: 'center', opacity: status === 'past' || isToday ? 1 : 0.35 }}>
         <TripleRing rings={status === 'before' ? undefined : rings} size={32} stroke={3.4} />
@@ -259,7 +280,7 @@ function HighlightLanes({ row, goals, labeled }: { row: (string | null)[]; goals
     .filter((x): x is { g: GoalSpan; first: number; last: number } => x != null);
   if (!lanes.length) return null;
   return (
-    <View style={{ gap: 2, marginTop: 2 }}>
+    <View style={{ gap: 2, marginTop: 2 }} aria-hidden>
       {lanes.map(({ g, first, last }) => {
         const starts = row[first] === g.start;
         const ends = row[last] === g.end;
@@ -305,13 +326,16 @@ function RingLegend() {
     <View style={{ borderTopWidth: 1, borderTopColor: colors.line, marginTop: 4, paddingTop: 8, paddingHorizontal: 6, gap: 4 }}>
       <View style={[styles.row, { flexWrap: 'wrap', gap: 10 }]}>
         {RINGS.map((r, i) => (
-          <Text key={r.key} style={{ fontSize: 11, color: colors.sub }}>
-            <Text style={{ color: r.color, fontWeight: '900' }}>●</Text> {i === 0 ? '바깥 ' : i === 1 ? '가운데 ' : '안쪽 '}
+          <Text key={r.key} style={{ fontSize: 12, color: colors.sub }}>
+            <Text style={{ color: r.color, fontWeight: '900' }} aria-hidden>
+              ●
+            </Text>{' '}
+            {i === 0 ? '바깥 ' : i === 1 ? '가운데 ' : '안쪽 '}
             <Text style={{ fontWeight: '700', color: colors.text }}>{r.label}</Text>({r.desc})
           </Text>
         ))}
       </View>
-      <Text style={{ fontSize: 11, color: colors.sub }}>하루 목표를 다 채우면 링이 닫혀요. ⭐ = 그날 링을 모두 채운 날 · 형광펜 = 목표 진행 기간</Text>
+      <Text style={{ fontSize: 12, color: colors.sub, lineHeight: 17 }}>하루 목표를 다 채우면 링이 닫혀요. ⭐ = 그날 링을 모두 채운 날 · 형광펜 = 목표 진행 기간</Text>
     </View>
   );
 }
@@ -354,7 +378,9 @@ function DayDetail({ date, today, firstUse, goals }: { date: string; today: stri
       }
     >
       <View style={[styles.row, { gap: 16 }]}>
-        <TripleRing rings={rings} size={96} stroke={10} />
+        <View aria-hidden>
+          <TripleRing rings={rings} size={96} stroke={10} />
+        </View>
         <View style={{ flex: 1, gap: 6 }}>
           {RINGS.map((r) => {
             const v = rings[r.key];
@@ -364,10 +390,10 @@ function DayDetail({ date, today, firstUse, goals }: { date: string; today: stri
               .join(' · ');
             return (
               <View key={r.key}>
-                <Text style={{ fontSize: 14, fontWeight: '800', color: r.color }}>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: ink(r.color) }}>
                   {r.label} {v == null ? '-' : `${Math.round(v * 100)}%`}
                 </Text>
-                <Text style={{ fontSize: 11, color: colors.sub }} numberOfLines={2}>
+                <Text style={{ fontSize: 12, color: colors.sub }} numberOfLines={2}>
                   {sub || '해당 항목 없음'}
                 </Text>
               </View>
@@ -417,23 +443,23 @@ function GoalTimeline({ goals, today }: { goals: GoalSpan[]; today: string }) {
             </View>
             <View style={{ gap: 4 }}>
               <View style={[styles.row, { gap: 8 }]}>
-                <Text style={{ width: 28, fontSize: 11, color: colors.sub }}>기간</Text>
+                <Text style={{ width: 30, fontSize: 12, color: colors.sub }}>기간</Text>
                 <View style={{ flex: 1, height: 12, borderRadius: 6, backgroundColor: color + '45', overflow: 'hidden' }}>
                   <View style={{ width: `${time * 100}%`, height: '100%', backgroundColor: color }} />
                 </View>
-                <Text style={{ width: 40, textAlign: 'right', fontSize: 11, color: colors.text }}>{Math.round(time * 100)}%</Text>
+                <Text style={{ width: 40, textAlign: 'right', fontSize: 12, color: colors.text }}>{Math.round(time * 100)}%</Text>
               </View>
               <View style={[styles.row, { gap: 8 }]}>
-                <Text style={{ width: 28, fontSize: 11, color: colors.sub }}>달성</Text>
+                <Text style={{ width: 30, fontSize: 12, color: colors.sub }}>달성</Text>
                 <View style={{ flex: 1, height: 12, borderRadius: 6, backgroundColor: colors.line, overflow: 'hidden' }}>
                   <View style={{ width: `${p.ratio * 100}%`, height: '100%', backgroundColor: statusColor }} />
                 </View>
-                <Text style={{ width: 40, textAlign: 'right', fontSize: 11, fontWeight: '800', color: statusColor }}>{Math.round(p.ratio * 100)}%</Text>
+                <Text style={{ width: 40, textAlign: 'right', fontSize: 12, fontWeight: '800', color: ink(statusColor) }}>{Math.round(p.ratio * 100)}%</Text>
               </View>
             </View>
             <Text style={{ fontSize: 12, color: colors.sub }}>
               {before ? `${dayDiff(today, start)}일 뒤 시작` : finished ? '기간 종료' : `${elapsedDays}일째 · D-${goal.days - elapsedDays}`}
-              {STATUS_TEXT[p.status] ? <Text style={{ color: statusColor, fontWeight: '700' }}>{`  ${STATUS_TEXT[p.status]}`}</Text> : null}
+              {STATUS_TEXT[p.status] ? <Text style={{ color: ink(statusColor), fontWeight: '700' }}>{`  ${STATUS_TEXT[p.status]}`}</Text> : null}
             </Text>
           </View>
         );

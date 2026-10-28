@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { Card, Chip, GradeBadge, NumberField, ProgressBar, styles } from './ui';
+import { Card, GradeBadge, NumberField, ProgressBar, Segmented, styles } from './ui';
 import { useStore } from '../store';
 import { fetchWeather, Weather } from '../weather';
 import { bmiInfo, dayScore, scoreComment } from '../score';
@@ -9,7 +9,7 @@ import { dayActivities } from '../report';
 import { periodReport } from '../grade';
 import { addDays, formatKey, todayKey } from '../date';
 import { Ring } from './charts';
-import { colors } from '../theme';
+import { colors, ink, plain } from '../theme';
 
 export function WeatherCard() {
   const [weather, setWeather] = useState<Weather | null>(null);
@@ -39,9 +39,18 @@ export function WeatherCard() {
 
   return (
     <Card
-      title={weather ? `📍 ${weather.place}` : '오늘의 날씨'}
+      title={weather ? `📍 ${weather.place}` : '🌤️ 오늘의 날씨'}
+      style={{ backgroundColor: '#EEF5FF' }}
       right={
-        <Pressable onPress={load} hitSlop={10} disabled={loading}>
+        <Pressable
+          role="button"
+          aria-label="날씨 새로고침"
+          aria-busy={loading}
+          onPress={load}
+          disabled={loading}
+          hitSlop={6}
+          style={({ pressed }) => [styles.navButton, { width: 38, height: 38, backgroundColor: '#fff' }, pressed && { opacity: 0.6 }]}
+        >
           {loading ? <ActivityIndicator color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>}
         </Pressable>
       }
@@ -50,9 +59,11 @@ export function WeatherCard() {
       {weather && (
         <>
           <View style={[styles.row, { gap: 14 }]}>
-            <Text style={{ fontSize: 44 }}>{weather.emoji}</Text>
+            <Text style={{ fontSize: 46 }} aria-hidden>
+              {weather.emoji}
+            </Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text }}>
+              <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1 }}>
                 {weather.temp}°<Text style={{ fontSize: 16, fontWeight: '600', color: colors.sub }}> {weather.label}</Text>
               </Text>
               <Text style={styles.muted}>
@@ -61,10 +72,10 @@ export function WeatherCard() {
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.muted}>강수확률</Text>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.water }}>{weather.rainChance}%</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: ink(colors.water) }}>{weather.rainChance}%</Text>
             </View>
           </View>
-          {weather.rainChance >= 50 && <Text style={{ color: colors.water, fontWeight: '600' }}>☔ 우산 챙기세요!</Text>}
+          {weather.rainChance >= 50 && <Text style={{ color: ink(colors.water), fontWeight: '700' }}>☔ 우산 챙기세요!</Text>}
           {weather.note && <Text style={styles.muted}>{weather.note}</Text>}
         </>
       )}
@@ -92,22 +103,33 @@ export function DailyReport({ onOpenReport }: { onOpenReport: () => void }) {
     <Card
       title="📊 하루 리포트"
       right={
-        <View style={styles.row}>
-          <Chip label="어제" active={which === 'yesterday'} onPress={() => setWhich('yesterday')} />
-          <Chip label="오늘" active={which === 'today'} onPress={() => setWhich('today')} />
+        <View style={{ width: 124 }}>
+          <Segmented
+            label="리포트 날짜"
+            options={[
+              { value: 'yesterday', label: '어제' },
+              { value: 'today', label: '오늘' },
+            ]}
+            value={which}
+            onChange={setWhich}
+          />
         </View>
       }
     >
       <View style={[styles.row, { gap: 16 }]}>
-        <Ring ratio={score.total / 100} size={118} stroke={12} color={colors.primary}>
-          <Text style={{ fontSize: 34, fontWeight: '900', color: colors.text }}>{score.hasRecord ? score.total : '-'}</Text>
-          <Text style={{ fontSize: 11, color: colors.sub, marginTop: -2 }}>/ 100점</Text>
+        <Ring ratio={score.total / 100} size={118} stroke={12} color={colors.primary} label={score.hasRecord ? `하루 점수 ${score.total}점, 100점 만점` : '하루 점수 기록 없음'}>
+          <Text style={{ fontSize: 36, fontWeight: '900', color: colors.text, letterSpacing: -1 }} maxFontSizeMultiplier={1.1}>
+            {score.hasRecord ? score.total : '-'}
+          </Text>
+          <Text style={{ fontSize: 11, color: colors.sub, marginTop: -2 }} maxFontSizeMultiplier={1.1}>
+            / 100점
+          </Text>
         </Ring>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={{ fontSize: 13, color: colors.sub }}>{formatKey(date)}</Text>
           <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{score.hasRecord ? scoreComment(score.total) : '기록이 없어요'}</Text>
           {before.hasRecord && score.hasRecord && (
-            <Text style={{ fontWeight: '700', color: diff > 0 ? colors.steps : diff < 0 ? colors.danger : colors.sub }}>
+            <Text style={{ fontWeight: '700', color: diff > 0 ? ink(colors.steps) : diff < 0 ? ink(colors.danger) : colors.sub }}>
               {which === 'today' ? '어제' : '그저께'} {before.total}점 대비 {diff > 0 ? `▲ ${diff}` : diff < 0 ? `▼ ${-diff}` : '변동 없음'}
             </Text>
           )}
@@ -119,12 +141,23 @@ export function DailyReport({ onOpenReport }: { onOpenReport: () => void }) {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, marginTop: 4 }}>
         {score.items.map((item) => (
-          <View key={item.key} style={{ width: '25%', alignItems: 'center', gap: 3 }}>
+          <View
+            key={item.key}
+            role="img"
+            aria-label={`${plain(item.label)} ${Math.round(item.ratio * 100)}%, ${item.valueText}`}
+            style={{ width: '25%', alignItems: 'center', gap: 3 }}
+          >
             <Ring ratio={item.ratio} size={58} stroke={6} color={item.color}>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: item.ratio >= 1 ? item.color : colors.text }}>{Math.round(item.ratio * 100)}%</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: item.ratio >= 1 ? ink(item.color) : colors.text }} maxFontSizeMultiplier={1.1}>
+                {Math.round(item.ratio * 100)}%
+              </Text>
             </Ring>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{item.label}</Text>
-            <Text style={{ fontSize: 10, color: colors.sub }}>{item.valueText}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }} maxFontSizeMultiplier={1.3}>
+              {item.label}
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.sub }} maxFontSizeMultiplier={1.3}>
+              {item.valueText}
+            </Text>
           </View>
         ))}
       </View>
@@ -144,7 +177,7 @@ export function DailyReport({ onOpenReport }: { onOpenReport: () => void }) {
       )}
 
       {score.hasRecord && best.ratio > 0 && (
-        <View style={{ backgroundColor: colors.bg, borderRadius: 10, padding: 10, gap: 2 }}>
+        <View style={{ backgroundColor: colors.bg, borderRadius: 12, padding: 12, gap: 4 }}>
           <Text style={{ fontSize: 13, color: colors.text }}>
             👏 가장 잘한 것 <Text style={{ fontWeight: '800' }}>{best.label}</Text> ({Math.round(best.ratio * 100)}%)
           </Text>
@@ -156,8 +189,10 @@ export function DailyReport({ onOpenReport }: { onOpenReport: () => void }) {
         </View>
       )}
       <Pressable
+        role="button"
+        aria-label={`이번 주 성적 ${week.grade ? `${week.grade.grade} 등급 ${week.score?.toFixed(1)}점` : '집계 전'}. 성적표 보기`}
         onPress={onOpenReport}
-        style={({ pressed }) => [styles.row, { justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }, pressed && { opacity: 0.6 }]}
+        style={({ pressed }) => [styles.row, { justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, minHeight: 44 }, pressed && { opacity: 0.6 }]}
       >
         <View style={[styles.row, { gap: 8 }]}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>📋 이번 주 성적</Text>
@@ -197,28 +232,28 @@ export function QuickRecordCard({ links }: { links: ReactNode }) {
       <View style={[styles.row, { gap: 10 }]}>
         <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>⚖️ 체중</Text>
         <View style={{ flex: 1 }}>
-          <NumberField decimal value={weight} placeholder="오늘 몸무게 (예: 65.2)" unit="kg" onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))} />
+          <NumberField decimal value={weight} label="오늘 체중" placeholder="오늘 몸무게 (예: 65.2)" unit="kg" onCommit={(v) => updateLog(today, (l) => ({ ...l, weight: v }))} />
         </View>
       </View>
       {!height && (
         <View style={[styles.row, { gap: 10 }]}>
           <Text style={{ width: 52, fontWeight: '700', color: colors.text }}>📏 키</Text>
           <View style={{ flex: 1 }}>
-            <NumberField decimal value={undefined} placeholder="BMI 계산용 키 (예: 170)" unit="cm" onCommit={(v) => v && setProfile({ ...data.profile, heightCm: v })} />
+            <NumberField decimal value={undefined} label="키" placeholder="BMI 계산용 키 (예: 170)" unit="cm" onCommit={(v) => v && setProfile({ ...data.profile, heightCm: v })} />
           </View>
         </View>
       )}
       {(bmi || change != null) && (
-        <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }]}>
+        <View style={[styles.row, { justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: 12, padding: 12 }]}>
           {bmi ? (
             <Text style={{ color: colors.text, fontWeight: '700' }}>
-              BMI {bmi.bmi.toFixed(1)} <Text style={{ color: bmi.color }}>{bmi.label}</Text>
+              BMI {bmi.bmi.toFixed(1)} <Text style={{ color: ink(bmi.color) }}>{bmi.label}</Text>
             </Text>
           ) : (
             <View />
           )}
           {change != null && (
-            <Text style={{ fontWeight: '600', color: change > 0 ? colors.danger : change < 0 ? colors.steps : colors.sub }}>
+            <Text style={{ fontWeight: '700', color: change > 0 ? ink(colors.danger) : change < 0 ? ink(colors.steps) : colors.sub }}>
               지난 기록 대비 {change > 0 ? `+${change}` : change}kg
             </Text>
           )}
@@ -233,9 +268,16 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
   const { data, updateChallenge } = useStore();
   const today = todayKey();
   return (
-    <Card title="🎯 목표 진행" right={<Pressable onPress={onOpen}><Text style={{ color: colors.primary, fontWeight: '600' }}>전체 ›</Text></Pressable>}>
+    <Card
+      title="🎯 목표 진행"
+      right={
+        <Pressable role="button" aria-label="목표 전체 보기" onPress={onOpen} hitSlop={10}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>전체 ›</Text>
+        </Pressable>
+      }
+    >
       {data.challenges.length === 0 && (
-        <Pressable onPress={onOpen}>
+        <Pressable role="button" onPress={onOpen}>
           <Text style={[styles.muted, { textAlign: 'center', paddingVertical: 6 }]}>다이어트, 공부 같은 장·단기 목표를 만들어 보세요 ›</Text>
         </Pressable>
       )}
@@ -253,7 +295,10 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
               <Text style={styles.muted}>{p.dayLabel}</Text>
               {c.kind === 'streak' && today >= c.startDate && (
                 <Pressable
-                  hitSlop={6}
+                  role="checkbox"
+                  aria-checked={doneToday}
+                  aria-label={`${c.title} 오늘 했어요`}
+                  hitSlop={10}
                   onPress={() =>
                     updateChallenge(c.id, (x) =>
                       x.kind === 'streak'
@@ -261,14 +306,14 @@ export function ChallengeSummary({ onOpen }: { onOpen: () => void }) {
                         : x,
                     )
                   }
-                  style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? colors.steps : colors.bg, borderWidth: 1, borderColor: doneToday ? colors.steps : colors.line }}
+                  style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: doneToday ? ink(colors.steps) : colors.bg, borderWidth: 1.5, borderColor: doneToday ? ink(colors.steps) : '#C9CED8' }}
                 >
                   {doneToday && <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>✓</Text>}
                 </Pressable>
               )}
-              <Text style={{ width: 44, textAlign: 'right', fontWeight: '800', color }}>{pct}%</Text>
+              <Text style={{ width: 46, textAlign: 'right', fontWeight: '800', color: ink(color) }}>{pct}%</Text>
             </View>
-            <ProgressBar value={p.ratio} max={1} color={color} marker={p.expected} />
+            <ProgressBar value={p.ratio} max={1} color={color} marker={p.expected} label={`${c.title} 진행률`} />
             <Text style={[styles.muted, { fontSize: 12 }]} numberOfLines={1}>
               {p.summary}
               {p.status === 'behind' ? '  · 조금 뒤처졌어요' : p.status === 'ahead' ? '  · 순항 중' : ''}

@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { confirmAction, notify } from '../dialog';
-import { Button, Card, Chip, DateNav, DeleteX, Empty, Input, Screen, styles } from '../components/ui';
+import { Button, Card, DateNav, DeleteX, dialogName, Empty, headingLevel, Input, Screen, Segmented, styles } from '../components/ui';
 import { TrendCard } from '../components/charts';
 import { MealThumb, PhotoViewer } from '../components/MealPhoto';
 import { AiSettingsCard } from '../components/AiSettingsCard';
 import { useStore } from '../store';
 import { newId, todayKey } from '../date';
-import { colors } from '../theme';
+import { colors, ink } from '../theme';
 import { Meal, MealType } from '../types';
 import { MACRO_RANGE, MACROS, macroShares, macroText, mealTotals, mealTypeForHour } from '../nutrition';
 import { pickMealPhoto, PickedPhoto } from '../photos/capture';
@@ -58,7 +58,7 @@ export default function DietScreen() {
 
       <TrendCard title="섭취 칼로리 추이" unit="kcal" color={colors.star} kind="bar" mode="amount" getValue={kcalOf} />
 
-      <Modal visible={!!editing} animationType="slide" onRequestClose={() => setEditing(null)}>
+      <Modal visible={!!editing} animationType="slide" onRequestClose={() => setEditing(null)} {...dialogName('식사 수정')}>
         {editing && <EditSheet date={date} meal={editing} onClose={() => setEditing(null)} />}
       </Modal>
     </Screen>
@@ -69,8 +69,13 @@ function MealRow({ meal, onEdit, onDelete }: { meal: Meal; onEdit: () => void; o
   const numbers = [meal.kcal ? `${Math.round(meal.kcal).toLocaleString()}kcal` : '', macroText(meal)].filter(Boolean).join(' · ');
   return (
     <View style={styles.listItem}>
-      <MealThumb photo={meal.photo} />
-      <Pressable onPress={onEdit} style={({ pressed }) => [{ flex: 1, gap: 2 }, pressed && { opacity: 0.6 }]}>
+      <MealThumb photo={meal.photo} label={`${meal.type} ${meal.text} 사진 크게 보기`} />
+      <Pressable
+        role="button"
+        aria-label={`${meal.type} ${meal.text}${numbers ? `, ${numbers}` : ''}${meal.ai ? ', AI 추정' : ''}. 눌러서 수정`}
+        onPress={onEdit}
+        style={({ pressed }) => [{ flex: 1, gap: 2 }, pressed && { opacity: 0.6 }]}
+      >
         <View style={[styles.row, { gap: 6 }]}>
           <Text style={{ fontWeight: '700', color: colors.sub }}>{meal.type}</Text>
           {meal.ai && (
@@ -82,7 +87,7 @@ function MealRow({ meal, onEdit, onDelete }: { meal: Meal; onEdit: () => void; o
         <Text style={{ fontSize: 15, color: colors.text }}>{meal.text}</Text>
         {numbers ? <Text style={styles.muted}>{numbers}</Text> : null}
       </Pressable>
-      <DeleteX onPress={onDelete} />
+      <DeleteX label={`${meal.type} ${meal.text} 삭제`} onPress={onDelete} />
     </View>
   );
 }
@@ -93,7 +98,9 @@ function EditSheet({ date, meal, onClose }: { date: string; meal: Meal; onClose:
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, gap: 12 }} keyboardShouldPersistTaps="handled">
         <View style={[styles.row, { justifyContent: 'space-between' }]}>
-          <Text style={styles.screenTitle}>식사 수정</Text>
+          <Text role="heading" {...headingLevel(1)} style={styles.screenTitle}>
+            식사 수정
+          </Text>
           <Button label="닫기" small outline onPress={onClose} />
         </View>
         <Card>
@@ -232,22 +239,27 @@ function MealForm({ date, meal, onDone }: { date: string; meal?: Meal; onDone?: 
 
   return (
     <View style={{ gap: 10, ...(meal ? {} : { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }) }}>
-      <View style={[styles.row, { flexWrap: 'wrap' }]}>
-        {MEAL_TYPES.map((t) => (
-          <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
-        ))}
-      </View>
+      <Segmented label="식사 종류" options={MEAL_TYPES.map((t) => ({ value: t, label: t }))} value={type} onChange={setType} />
 
       {previewUri ? (
         <View>
-          <Pressable onPress={() => setViewing(previewUri)}>
-            <Image source={{ uri: previewUri }} style={{ width: '100%', aspectRatio: picked ? picked.width / picked.height : 4 / 3, maxHeight: 260, borderRadius: 12, backgroundColor: colors.line }} resizeMode="cover" />
+          <Pressable role="button" aria-label="식사 사진 크게 보기" onPress={() => setViewing(previewUri)}>
+            <Image source={{ uri: previewUri }} style={{ width: '100%', aspectRatio: picked ? picked.width / picked.height : 4 / 3, maxHeight: 260, borderRadius: 14, backgroundColor: colors.line }} resizeMode="cover" />
           </Pressable>
-          <Pressable onPress={removePhoto} hitSlop={8} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: '800' }}>✕</Text>
+          <Pressable
+            role="button"
+            aria-label="사진 빼기"
+            onPress={removePhoto}
+            hitSlop={6}
+            style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 999, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>✕</Text>
           </Pressable>
           {running && (
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, borderRadius: 12, backgroundColor: 'rgba(15,20,35,0.45)', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <View
+              aria-live="polite"
+              style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, borderRadius: 14, backgroundColor: 'rgba(15,20,35,0.5)', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
               <ActivityIndicator color="#fff" size="large" />
               <Text style={{ color: '#fff', fontWeight: '700' }}>AI가 사진을 보고 있어요…</Text>
             </View>
@@ -265,16 +277,16 @@ function MealForm({ date, meal, onDone }: { date: string; meal?: Meal; onDone?: 
       )}
 
       {analysis.status === 'running' && !previewUri && (
-        <View style={[styles.row, { justifyContent: 'center' }]}>
+        <View style={[styles.row, { justifyContent: 'center' }]} aria-live="polite">
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.muted}>AI가 메뉴를 보고 추정하는 중…</Text>
         </View>
       )}
       {analysis.status === 'done' && <EstimateBox result={analysis.result} />}
       {analysis.status === 'error' && (
-        <View style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 10, gap: 6 }}>
-          <Text style={{ color: colors.danger, lineHeight: 19 }}>{analysis.message}</Text>
-          <Pressable onPress={() => analyze()} hitSlop={6}>
+        <View role="alert" style={{ backgroundColor: '#FDECEC', borderRadius: 12, padding: 12, gap: 6 }}>
+          <Text style={{ color: ink(colors.danger), lineHeight: 20 }}>{analysis.message}</Text>
+          <Pressable role="button" aria-label="AI 분석 다시 시도" onPress={() => analyze()} hitSlop={8}>
             <Text style={{ color: colors.primary, fontWeight: '700' }}>다시 시도 ›</Text>
           </Pressable>
         </View>
@@ -282,11 +294,12 @@ function MealForm({ date, meal, onDone }: { date: string; meal?: Meal; onDone?: 
 
       <Input value={text} onChangeText={setText} placeholder={hasPhoto ? '메뉴 (비워두면 AI가 채워요)' : '메뉴 (예: 김치찌개, 현미밥 반 공기)'} />
       <View style={styles.row}>
-        <NumBox label="열량" unit="kcal" value={kcal} onChange={setKcal} />
+        <NumBox label="열량" name="열량" unit="kcal" value={kcal} onChange={setKcal} />
         {MACROS.map((m) => (
           <NumBox
             key={m.k}
             label={m.short}
+            name={m.label}
             unit="g"
             color={m.color}
             value={m.k === 'carbs' ? carbs : m.k === 'protein' ? protein : fat}
@@ -309,15 +322,15 @@ function MealForm({ date, meal, onDone }: { date: string; meal?: Meal; onDone?: 
         </View>
       </View>
       {ai.loaded && !ai.apiKey && (
-        <Pressable onPress={() => setSetupOpen(true)} hitSlop={4}>
-          <Text style={styles.muted}>
+        <Pressable role="button" aria-label="Claude API 키 연결하기" onPress={() => setSetupOpen(true)} hitSlop={4}>
+          <Text style={[styles.muted, { lineHeight: 19 }]}>
             🤖 Claude API 키를 연결하면 사진만으로 칼로리·탄단지를 추정해요. <Text style={{ color: colors.primary, fontWeight: '700' }}>연결하기 ›</Text>
           </Text>
         </Pressable>
       )}
 
       <PhotoViewer uri={viewing} onClose={() => setViewing(undefined)} />
-      <Modal visible={setupOpen} animationType="slide" onRequestClose={() => setSetupOpen(false)}>
+      <Modal visible={setupOpen} animationType="slide" onRequestClose={() => setSetupOpen(false)} {...dialogName('AI 연결')}>
         <AiSetupSheet
           onClose={() => setSetupOpen(false)}
           onSaved={() => {
@@ -330,23 +343,23 @@ function MealForm({ date, meal, onDone }: { date: string; meal?: Meal; onDone?: 
   );
 }
 
-function NumBox({ label, unit, value, onChange, color = colors.text }: { label: string; unit: string; value: string; onChange: (v: string) => void; color?: string }) {
+function NumBox({ label, name, unit, value, onChange, color = colors.text }: { label: string; name: string; unit: string; value: string; onChange: (v: string) => void; color?: string }) {
   return (
-    <View style={{ flex: 1, gap: 2 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color }}>
+    <View style={{ flex: 1, gap: 3 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: ink(color) }} aria-hidden>
         {label} <Text style={{ color: colors.sub, fontWeight: '400' }}>{unit}</Text>
       </Text>
-      <Input value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder="-" style={{ paddingHorizontal: 8, textAlign: 'center' }} />
+      <Input value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder="-" aria-label={`${name} (${unit})`} style={{ paddingHorizontal: 6, textAlign: 'center' }} />
     </View>
   );
 }
 
 function EstimateBox({ result }: { result: MealEstimate }) {
   return (
-    <View style={{ backgroundColor: '#EEF2FF', borderRadius: 10, padding: 10, gap: 4 }}>
+    <View style={{ backgroundColor: colors.primarySoft, borderRadius: 12, padding: 12, gap: 4 }}>
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         <Text style={{ fontWeight: '800', color: colors.text }}>🤖 AI 추정 · {result.kcal.toLocaleString()}kcal</Text>
-        <Text style={[styles.muted, result.confidence === 'low' && { color: colors.danger }]}>신뢰도 {CONFIDENCE_TEXT[result.confidence]}</Text>
+        <Text style={[styles.muted, result.confidence === 'low' && { color: ink(colors.danger) }]}>신뢰도 {CONFIDENCE_TEXT[result.confidence]}</Text>
       </View>
       {result.items.map((i, idx) => (
         <Text key={idx} style={{ color: colors.text, fontSize: 13 }}>
@@ -354,7 +367,7 @@ function EstimateBox({ result }: { result: MealEstimate }) {
         </Text>
       ))}
       {result.note ? <Text style={[styles.muted, { lineHeight: 18 }]}>{result.note}</Text> : null}
-      <Text style={[styles.muted, { fontSize: 11 }]}>사진으로 본 대략적인 값이에요. 아래 숫자를 고쳐서 저장할 수 있어요.</Text>
+      <Text style={[styles.muted, { fontSize: 12 }]}>사진으로 본 대략적인 값이에요. 아래 숫자를 고쳐서 저장할 수 있어요.</Text>
     </View>
   );
 }
@@ -365,7 +378,9 @@ function AiSetupSheet({ onClose, onSaved }: { onClose: () => void; onSaved: () =
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, gap: 12 }} keyboardShouldPersistTaps="handled">
         <View style={[styles.row, { justifyContent: 'space-between' }]}>
-          <Text style={styles.screenTitle}>AI 연결</Text>
+          <Text role="heading" {...headingLevel(1)} style={styles.screenTitle}>
+            AI 연결
+          </Text>
           <Button label="닫기" small outline onPress={onClose} />
         </View>
         <AiSettingsCard onSaved={onSaved} />
@@ -383,8 +398,8 @@ function NutritionCard({ meals }: { meals: Meal[] }) {
     <Card title="📊 하루 영양" right={t.kcal > 0 ? <Text style={{ fontWeight: '800', color: colors.text }}>{Math.round(t.kcal).toLocaleString()}kcal</Text> : undefined}>
       <View style={styles.row}>
         {MACROS.map((m) => (
-          <View key={m.k} style={{ flex: 1, backgroundColor: colors.bg, borderRadius: 10, padding: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: m.color }}>{m.label}</Text>
+          <View key={m.k} style={{ flex: 1, backgroundColor: colors.bg, borderRadius: 12, padding: 10 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: ink(m.color) }}>{m.label}</Text>
             <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text }}>
               {Math.round(t[m.k])}
               <Text style={{ fontSize: 12, color: colors.sub }}>g</Text>
@@ -395,7 +410,7 @@ function NutritionCard({ meals }: { meals: Meal[] }) {
       </View>
       {shares && (
         <>
-          <View style={{ flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.line }}>
+          <View aria-hidden style={{ flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.line }}>
             {MACROS.map((m) => (
               <View key={m.k} style={{ flex: shares[m.k], backgroundColor: m.color }} />
             ))}

@@ -80,7 +80,7 @@ export default function ExerciseScreen() {
             <Text style={styles.muted}> / {goals.exerciseMin}분</Text>
           </Text>
         </View>
-        <ProgressBar value={exerciseTotal} max={goals.exerciseMin} color={colors.exercise} />
+        <ProgressBar value={exerciseTotal} max={goals.exerciseMin} color={colors.exercise} label={`운동 목표 달성률, ${exerciseTotal}분 / ${goals.exerciseMin}분`} />
         {log.exercises.length === 0 && <Empty text="아직 운동 기록이 없어요" />}
         {log.exercises.map((e) => (
           <View key={e.id} style={styles.listItem}>
@@ -97,8 +97,8 @@ export default function ExerciseScreen() {
       </Card>
 
       <Card title="👟 걸음 수" right={<GoalField k="steps" unit="보" />}>
-        <ProgressBar value={log.steps} max={goals.steps} color={colors.steps} />
-        <NumberField key={date} value={log.steps || undefined} placeholder="걸음 수 입력" unit="보" onCommit={(v) => update((l) => ({ ...l, steps: v ?? 0 }))} />
+        <ProgressBar value={log.steps} max={goals.steps} color={colors.steps} label={`걸음 목표 달성률, ${log.steps.toLocaleString()}보 / ${goals.steps.toLocaleString()}보`} />
+        <NumberField key={date} value={log.steps || undefined} label="걸음 수" placeholder="걸음 수 입력" unit="보" onCommit={(v) => update((l) => ({ ...l, steps: v ?? 0 }))} />
         {Platform.OS === 'ios' && <Button label="휴대폰 만보기에서 불러오기" small outline color={colors.steps} onPress={syncSteps} />}
         {Platform.OS === 'android' && <Button label="삼성 헬스 · 헬스 커넥트에서 불러오기" small outline color={colors.steps} onPress={syncSteps} />}
       </Card>

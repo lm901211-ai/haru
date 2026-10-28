@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
-import { Button, Card, Chip, Input, styles } from './ui';
+import { Button, Card, Input, Segmented, styles } from './ui';
 import { confirmAction, notify } from '../dialog';
 import { AI_MODELS, maskKey, saveApiKey, saveModel, useAiSettings } from '../ai/settings';
 import { verifyApiKey } from '../ai/mealAnalysis';
@@ -86,14 +86,10 @@ export function AiSettingsCard({ onSaved }: { onSaved?: () => void }) {
       )}
 
       <Text style={{ fontWeight: '700', color: colors.text }}>분석 방식</Text>
-      <View style={styles.row}>
-        {AI_MODELS.map((m) => (
-          <Chip key={m.id} label={m.label} active={ai.model === m.id} onPress={() => saveModel(m.id).catch(() => {})} />
-        ))}
-      </View>
+      <Segmented label="분석 방식" options={AI_MODELS.map((m) => ({ value: m.id, label: m.label }))} value={ai.model} onChange={(id) => saveModel(id).catch(() => {})} />
       <Text style={styles.muted}>{model.desc}</Text>
 
-      <Pressable onPress={() => setHelp((v) => !v)} hitSlop={6}>
+      <Pressable role="button" aria-expanded={help} onPress={() => setHelp((v) => !v)} hitSlop={8}>
         <Text style={{ color: colors.primary, fontWeight: '600' }}>API 키 받는 방법 {help ? '▴' : '▾'}</Text>
       </Pressable>
       {help && (
@@ -102,7 +98,7 @@ export function AiSettingsCard({ onSaved }: { onSaved?: () => void }) {
           <Text style={{ color: colors.text, lineHeight: 20 }}>2. Settings › Billing 에서 크레딧을 충전해요. 쓴 만큼 차감되는 선불 방식이에요.</Text>
           <Text style={{ color: colors.text, lineHeight: 20 }}>3. Settings › API Keys 에서 ‘Create Key’로 키를 만들고 복사해요.</Text>
           <Text style={{ color: colors.text, lineHeight: 20 }}>4. 위 칸에 붙여넣고 ‘확인 후 저장’을 눌러요.</Text>
-          <Pressable onPress={() => Linking.openURL(CONSOLE_KEYS).catch(() => {})} hitSlop={6}>
+          <Pressable role="link" aria-label="Claude 콘솔 열기" onPress={() => Linking.openURL(CONSOLE_KEYS).catch(() => {})} hitSlop={8}>
             <Text style={{ color: colors.primary, fontWeight: '700', marginTop: 4 }}>Claude 콘솔 열기 ›</Text>
           </Pressable>
         </View>

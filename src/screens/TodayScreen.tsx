@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Card, Empty, Screen, styles } from '../components/ui';
 import { useStore } from '../store';
 import { formatKey, todayKey } from '../date';
-import { colors } from '../theme';
+import { colors, solid } from '../theme';
 import { TodoRow } from './TodoScreen';
 import { ChallengeSummary, DailyReport, QuickRecordCard, WeatherCard } from '../components/home';
 import { Tab } from '../tabs';
@@ -22,15 +22,15 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
   const todos = data.todos.filter((t) => t.date === today).sort((a, b) => Number(a.done) - Number(b.done) || Number(b.important) - Number(a.important));
   const habitsDone = data.habits.filter((h) => h.doneDates.includes(today)).length;
 
-  const link = (label: string, tab: Tab) => (
-    <Pressable onPress={() => goTo(tab)}>
-      <Text style={{ color: colors.primary, fontWeight: '600' }}>{label} ›</Text>
+  const link = (label: string, tab: Tab, a11y = `${label} 화면으로`) => (
+    <Pressable role="button" aria-label={a11y} onPress={() => goTo(tab)} hitSlop={10} style={{ minHeight: 32, justifyContent: 'center' }}>
+      <Text style={{ color: colors.primary, fontWeight: '700' }}>{label} ›</Text>
     </Pressable>
   );
 
   return (
     <Screen title={greeting()} right={<SettingsButton />}>
-      <Text style={[styles.muted, { marginTop: -8, fontSize: 15 }]}>{formatKey(today)}</Text>
+      <Text style={[styles.muted, { marginTop: -10, fontSize: 15 }]}>{formatKey(today)}</Text>
 
       <WeatherCard />
       <DailyReport onOpenReport={() => goTo('report')} />
@@ -46,16 +46,16 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
         }
       />
 
-      <Card title="오늘 할 일" right={link('전체', 'todo')}>
+      <Card title="📝 오늘 할 일" right={link('전체', 'todo', '할 일 전체 보기')}>
         {todos.length === 0 && <Empty text="오늘 할 일이 없어요" />}
         {todos.map((t) => (
           <TodoRow key={t.id} todo={t} onToggle={() => updateTodo(t.id, { done: !t.done })} />
         ))}
       </Card>
 
-      <Card title="오늘의 습관" right={<Text style={styles.muted}>{habitsDone} / {data.habits.length}</Text>}>
+      <Card title="🔥 오늘의 습관" right={<Text style={styles.muted}>{habitsDone} / {data.habits.length}</Text>}>
         {data.habits.length === 0 && (
-          <Pressable onPress={() => goTo('habit')}>
+          <Pressable role="button" onPress={() => goTo('habit')}>
             <Empty text="습관을 추가해 보세요 ›" />
           </Pressable>
         )}
@@ -65,8 +65,14 @@ export default function TodayScreen({ goTo }: { goTo: (tab: Tab) => void }) {
             return (
               <Pressable
                 key={h.id}
+                role="checkbox"
+                aria-checked={done}
+                aria-label={h.name}
                 onPress={() => toggleHabit(h.id, today)}
-                style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: done ? colors.steps : colors.bg }}
+                style={({ pressed }) => [
+                  { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: done ? solid(colors.steps) : colors.bg, borderWidth: 1, borderColor: done ? solid(colors.steps) : colors.line },
+                  pressed && { opacity: 0.75 },
+                ]}
               >
                 <Text style={{ color: done ? '#fff' : colors.text, fontWeight: '600' }}>
                   {done ? '✓ ' : ''}

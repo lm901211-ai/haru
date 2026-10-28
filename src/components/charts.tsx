@@ -1,9 +1,9 @@
 import { ReactNode, useState } from 'react';
 import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
-import { Card, Chip, styles } from './ui';
+import { Card, Segmented, styles } from './ui';
 import { addDays, dayDiff, fromKey, monthDates, shortDate, startOfWeek, todayKey, weekDates, weekdayOf } from '../date';
-import { colors } from '../theme';
+import { colors, ink, plain } from '../theme';
 
 const round = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 const fmt = (n: number, d = 1) => round(n, d).toLocaleString();
@@ -14,14 +14,15 @@ function useWidth(): [number, (e: LayoutChangeEvent) => void] {
 }
 
 /** 원형 달성 게이지 */
-export function Ring({ ratio, size = 64, stroke = 7, color, children }: { ratio: number; size?: number; stroke?: number; color: string; children?: ReactNode }) {
+/** label 을 주면 화면 읽기 프로그램이 링 대신 그 문장을 읽음 (예: "하루 점수 84점") */
+export function Ring({ ratio, size = 64, stroke = 7, color, children, label }: { ratio: number; size?: number; stroke?: number; color: string; children?: ReactNode; label?: string }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(ratio, 1));
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.line} strokeWidth={stroke} fill="none" />
+    <View role={label ? 'img' : undefined} aria-label={label} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute' }} aria-hidden>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="#ECEFF4" strokeWidth={stroke} fill="none" />
         {clamped > 0 && <Circle
           cx={size / 2}
           cy={size / 2}
@@ -299,45 +300,50 @@ export function TrendCard({
 
   return (
     <Card title={title}>
-      <View style={[styles.row, { gap: 6 }]}>
-        {PERIODS.map((p) => (
-          <Chip
-            key={p.key}
-            label={p.label}
-            active={period === p.key}
-            onPress={() => {
-              setPeriod(p.key);
-              setOffset(0);
-            }}
-            color={color}
-          />
-        ))}
-      </View>
+      <Segmented
+        label={`${plain(title)} 기간`}
+        options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+        value={period}
+        onChange={(v) => {
+          setPeriod(v);
+          setOffset(0);
+        }}
+      />
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
-        <Pressable onPress={() => setOffset(offset + 1)} hitSlop={12}>
-          <Text style={{ color: colors.primary, fontSize: 22 }}>‹</Text>
+        <Pressable role="button" aria-label="이전 기간" onPress={() => setOffset(offset + 1)} hitSlop={4} style={({ pressed }) => [styles.navButton, { width: 36, height: 36 }, pressed && { opacity: 0.6 }]}>
+          <Text style={{ color: colors.primary, fontSize: 20, lineHeight: 24 }}>‹</Text>
         </Pressable>
-        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 13 }}>{range.title}</Text>
-        <Pressable onPress={() => setOffset(Math.max(0, offset - 1))} hitSlop={12} disabled={offset === 0}>
-          <Text style={{ color: offset === 0 ? colors.line : colors.primary, fontSize: 22 }}>›</Text>
+        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13, flexShrink: 1, textAlign: 'center' }}>{range.title}</Text>
+        <Pressable
+          role="button"
+          aria-label="다음 기간"
+          aria-disabled={offset === 0}
+          onPress={() => setOffset(Math.max(0, offset - 1))}
+          hitSlop={4}
+          disabled={offset === 0}
+          style={({ pressed }) => [styles.navButton, { width: 36, height: 36 }, offset === 0 && { opacity: 0.35 }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={{ color: colors.primary, fontSize: 20, lineHeight: 24 }}>›</Text>
         </Pressable>
       </View>
       {cur.length === 0 ? (
         <Text style={[styles.empty, { paddingVertical: 40 }]}>이 기간에는 기록이 없어요</Text>
       ) : (
-        <TrendChart points={points} kind={kind} color={color} goal={goal} target={targetSeries} />
+        <View role="img" aria-label={`${plain(title)} 그래프, ${range.title}. ${stats.map((x) => `${x.label} ${x.value}`).join(', ')}`}>
+          <TrendChart points={points} kind={kind} color={color} goal={goal} target={targetSeries} />
+        </View>
       )}
       {target && cur.length > 0 && targetSeries?.some((v) => v != null) && (
-        <View style={[styles.row, { gap: 14 }]}>
-          <Text style={{ fontSize: 11, color }}>━ 실제</Text>
-          <Text style={{ fontSize: 11, color: colors.danger }}>╍ {target.label}</Text>
+        <View style={[styles.row, { gap: 14 }]} aria-hidden>
+          <Text style={{ fontSize: 12, color: ink(color) }}>━ 실제</Text>
+          <Text style={{ fontSize: 12, color: ink(colors.danger) }}>╍ {target.label}</Text>
         </View>
       )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {stats.map((s) => (
-          <View key={s.label} style={{ flexGrow: 1, minWidth: '30%', backgroundColor: colors.bg, borderRadius: 10, padding: 8 }}>
-            <Text style={{ fontSize: 11, color: colors.sub }}>{s.label}</Text>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: s.color ?? colors.text }}>{s.value}</Text>
+        {stats.map((x) => (
+          <View key={x.label} style={{ flexGrow: 1, minWidth: '30%', backgroundColor: colors.bg, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 10 }}>
+            <Text style={{ fontSize: 12, color: colors.sub }}>{x.label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: x.color ? ink(x.color) : colors.text }}>{x.value}</Text>
           </View>
         ))}
       </View>

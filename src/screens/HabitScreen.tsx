@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { confirmAction } from '../dialog';
-import { Button, Card, Chip, Empty, Input, Screen, styles, WeekDots } from '../components/ui';
+import { Button, Card, Chip, DeleteX, Input, Screen, styles, WeekDots } from '../components/ui';
 import { useStore } from '../store';
 import { streak, todayKey } from '../date';
-import { colors } from '../theme';
+import { colors, ink } from '../theme';
 
 const EMOJIS = ['✅', '📖', '🧘', '💊', '🏋️', '🥗', '🌅', '🚭', '✍️', '🧹'];
 const SUGGESTIONS = ['아침 스트레칭', '영양제 먹기', '책 10쪽 읽기', '명상 5분', '일찍 자기'];
@@ -30,7 +30,7 @@ export default function HabitScreen() {
         <Card title="이런 습관은 어때요?">
           <View style={[styles.row, { flexWrap: 'wrap' }]}>
             {SUGGESTIONS.map((s) => (
-              <Chip key={s} label={`＋ ${s}`} active={false} onPress={() => submit(s)} />
+              <Chip key={s} label={`＋ ${s}`} active={false} onPress={() => submit(s)} a11yRole="button" a11yLabel={`${s} 습관 추가`} />
             ))}
           </View>
         </Card>
@@ -41,12 +41,13 @@ export default function HabitScreen() {
         const doneToday = h.doneDates.includes(today);
         return (
           <Card key={h.id}>
-            <Pressable onLongPress={() => confirmDelete(h.id, h.name)} style={[styles.row, { justifyContent: 'space-between' }]}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 }}>
+            <View style={[styles.row, { justifyContent: 'space-between' }]}>
+              <Text role="heading" style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colors.text }}>
                 {h.emoji} {h.name}
               </Text>
-              <Text style={{ color: s > 0 ? colors.exercise : colors.sub, fontWeight: '700' }}>🔥 {s}일 연속</Text>
-            </Pressable>
+              <Text style={{ color: s > 0 ? ink(colors.exercise) : colors.sub, fontWeight: '700' }}>🔥 {s}일 연속</Text>
+              <DeleteX label={`${h.name} 습관 삭제`} onPress={() => confirmDelete(h.id, h.name)} />
+            </View>
             <WeekDots doneDates={h.doneDates} onToggle={(d) => toggleHabit(h.id, d)} />
             <Button
               label={doneToday ? '오늘 완료! (취소하려면 탭)' : '오늘 완료하기'}
@@ -68,7 +69,6 @@ export default function HabitScreen() {
           <Input value={name} onChangeText={setName} placeholder="예: 아침 스트레칭" onSubmitEditing={() => submit()} style={{ flex: 1 }} />
           <Button label="추가" onPress={() => submit()} />
         </View>
-        {data.habits.length > 0 && <Empty text="습관 이름을 길게 누르면 삭제할 수 있어요" />}
       </Card>
     </Screen>
   );

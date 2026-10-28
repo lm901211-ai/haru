@@ -145,6 +145,7 @@ export function ImportSection() {
                   </Text>
                 </View>
                 <Switch
+                  aria-label="앱을 열 때 헬스 커넥트에서 자동으로 가져오기"
                   value={!!data.sync?.healthConnect}
                   onValueChange={async (on) => {
                     if (on && !granted.length) {
@@ -156,7 +157,7 @@ export function ImportSection() {
                   }}
                 />
               </View>
-              <Pressable onPress={openHealthConnectSettings} hitSlop={6}>
+              <Pressable role="link" onPress={openHealthConnectSettings} hitSlop={8}>
                 <Text style={{ color: colors.primary, fontSize: 13 }}>헬스 커넥트 권한 설정 열기 ›</Text>
               </Pressable>
             </>
@@ -170,7 +171,7 @@ export function ImportSection() {
         <Button label="파일 선택해서 가져오기" outline disabled={!!busy} onPress={fromFiles} />
       </View>
 
-      <Pressable onPress={() => setHelp(!help)} hitSlop={6}>
+      <Pressable role="button" aria-expanded={help} onPress={() => setHelp(!help)} hitSlop={8}>
         <Text style={{ color: colors.primary, fontWeight: '600' }}>{help ? '연결 방법 닫기' : '연결 방법 보기 ›'}</Text>
       </Pressable>
       {help && <ImportHelp android={isAndroid} />}

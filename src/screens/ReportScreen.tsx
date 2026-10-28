@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Card, Chip, Empty, GradeBadge, ProgressBar, Screen, SERIF, styles } from '../components/ui';
+import { Card, Empty, GradeBadge, headingLevel, ProgressBar, Screen, Segmented, SERIF, styles } from '../components/ui';
 import { useStore } from '../store';
 import { countedRangeLabel, DayGrade, GRADES, GradeInfo, PeriodKind, periodReport, PeriodReport } from '../grade';
 import { fromKey, shortDate, todayKey, weekdayOf } from '../date';
-import { colors } from '../theme';
+import { colors, ink } from '../theme';
 
 const PAPER = '#FFFDF7';
 const PAPER_LINE = '#E8DFC9';
@@ -29,16 +29,34 @@ export default function ReportScreen() {
   return (
     <Screen title="리포트">
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
-        <View style={[styles.row, { gap: 6 }]}>
-          <Chip label="주간" active={kind === 'week'} onPress={() => (setKind('week'), setOffset(0))} />
-          <Chip label="월간" active={kind === 'month'} onPress={() => (setKind('month'), setOffset(0))} />
+        <View style={{ width: 168 }}>
+          <Segmented
+            label="성적표 기간"
+            options={[
+              { value: 'week', label: '주간' },
+              { value: 'month', label: '월간' },
+            ]}
+            value={kind}
+            onChange={(k) => {
+              setKind(k);
+              setOffset(0);
+            }}
+          />
         </View>
-        <View style={[styles.row, { gap: 14 }]}>
-          <Pressable onPress={() => setOffset(offset + 1)} hitSlop={12}>
-            <Text style={{ color: colors.primary, fontSize: 26 }}>‹</Text>
+        <View style={[styles.row, { gap: 8 }]}>
+          <Pressable role="button" aria-label={kind === 'week' ? '이전 주' : '이전 달'} onPress={() => setOffset(offset + 1)} hitSlop={4} style={({ pressed }) => [styles.navButton, { backgroundColor: '#fff' }, pressed && { opacity: 0.6 }]}>
+            <Text style={styles.dateArrow}>‹</Text>
           </Pressable>
-          <Pressable onPress={() => setOffset(Math.max(0, offset - 1))} hitSlop={12} disabled={offset === 0}>
-            <Text style={{ color: offset === 0 ? colors.line : colors.primary, fontSize: 26 }}>›</Text>
+          <Pressable
+            role="button"
+            aria-label={kind === 'week' ? '다음 주' : '다음 달'}
+            aria-disabled={offset === 0}
+            onPress={() => setOffset(Math.max(0, offset - 1))}
+            hitSlop={4}
+            disabled={offset === 0}
+            style={({ pressed }) => [styles.navButton, { backgroundColor: '#fff' }, offset === 0 && { opacity: 0.35 }, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.dateArrow}>›</Text>
           </Pressable>
         </View>
       </View>
@@ -60,20 +78,26 @@ export default function ReportScreen() {
 function GradeStamp({ grade, size = 96 }: { grade: GradeInfo; size?: number }) {
   return (
     <View
+      role="img"
+      aria-label={`종합 ${grade.grade} 등급, ${grade.label}`}
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
         borderWidth: 3,
-        borderColor: grade.color,
+        borderColor: ink(grade.color),
         alignItems: 'center',
         justifyContent: 'center',
         transform: [{ rotate: '-12deg' }],
       }}
     >
-      <View style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: size / 2, borderWidth: 1, borderColor: grade.color, opacity: 0.6 }} />
-      <Text style={{ fontSize: size * 0.48, lineHeight: size * 0.56, fontWeight: '900', color: grade.color, fontFamily: SERIF }}>{grade.grade}</Text>
-      <Text style={{ fontSize: 11, fontWeight: '800', color: grade.color }}>{grade.label}</Text>
+      <View style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: size / 2, borderWidth: 1, borderColor: ink(grade.color), opacity: 0.6 }} />
+      <Text style={{ fontSize: size * 0.48, lineHeight: size * 0.56, fontWeight: '900', color: ink(grade.color), fontFamily: SERIF }} maxFontSizeMultiplier={1}>
+        {grade.grade}
+      </Text>
+      <Text style={{ fontSize: 11, fontWeight: '800', color: ink(grade.color) }} maxFontSizeMultiplier={1.1}>
+        {grade.label}
+      </Text>
     </View>
   );
 }
@@ -85,7 +109,9 @@ function ReportHeader({ r, title }: { r: PeriodReport; title: string }) {
     <View style={{ backgroundColor: PAPER, borderRadius: 16, borderWidth: 1, borderColor: PAPER_LINE, padding: 16, gap: 12 }}>
       <View style={{ alignItems: 'center', gap: 2 }}>
         <Text style={{ fontSize: 12, letterSpacing: 2, color: colors.sub }}>하루관리 생활 기록</Text>
-        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, fontFamily: SERIF }}>{title}</Text>
+        <Text role="heading" {...headingLevel(2)} style={{ fontSize: 22, fontWeight: '800', color: colors.text, fontFamily: SERIF }}>
+          {title}
+        </Text>
         <Text style={{ fontSize: 12, color: colors.sub }}>{rangeText(r.dates)}</Text>
       </View>
       <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: PAPER_LINE, height: 4 }} />
@@ -103,14 +129,14 @@ function ReportHeader({ r, title }: { r: PeriodReport; title: string }) {
                 <Text style={{ fontSize: 15, color: colors.sub }}> 점</Text>
               </Text>
               {r.prev && diff != null && (
-                <Text style={{ fontSize: 13, fontWeight: '700', color: diff > 0 ? colors.steps : diff < 0 ? colors.danger : colors.sub }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: diff > 0 ? ink(colors.steps) : diff < 0 ? ink(colors.danger) : colors.sub }}>
                   {r.prevName} {r.prev.grade.grade} ({r.prev.score.toFixed(1)}) → {diff > 0 ? `▲ ${diff}` : diff < 0 ? `▼ ${-diff}` : '변동 없음'}
                 </Text>
               )}
               <Text style={{ fontSize: 13, color: colors.text }}>
-                출석 {r.recordedDays}/{r.counted.length}일{absent ? <Text style={{ color: colors.danger }}> · 결석 {absent}일</Text> : null}
+                출석 {r.recordedDays}/{r.counted.length}일{absent ? <Text style={{ color: ink(colors.danger) }}> · 결석 {absent}일</Text> : null}
               </Text>
-              <Text style={[styles.muted, { fontSize: 11 }]}>{countedRangeLabel(r)}</Text>
+              <Text style={[styles.muted, { fontSize: 12 }]}>{countedRangeLabel(r)}</Text>
             </View>
           </View>
 
@@ -121,7 +147,7 @@ function ReportHeader({ r, title }: { r: PeriodReport; title: string }) {
               .filter((d) => d.count > 0)
               .map((d) => (
                 <View key={d.grade.grade} style={[styles.row, { gap: 4, backgroundColor: '#fff', borderRadius: 999, borderWidth: 1, borderColor: PAPER_LINE, paddingHorizontal: 8, paddingVertical: 3 }]}>
-                  <Text style={{ fontWeight: '900', color: d.grade.color, fontFamily: SERIF }}>{d.grade.grade}</Text>
+                  <Text style={{ fontWeight: '900', color: ink(d.grade.color), fontFamily: SERIF }}>{d.grade.grade}</Text>
                   <Text style={{ fontSize: 12, color: colors.text }}>{d.count}일</Text>
                 </View>
               ))}
@@ -141,8 +167,12 @@ function ReportHeader({ r, title }: { r: PeriodReport; title: string }) {
 function DayBars({ days, kind }: { days: DayGrade[]; kind: PeriodKind }) {
   const H = 64;
   const today = todayKey();
+  const spoken = days
+    .filter((d) => d.status === 'scored' || d.status === 'absent')
+    .map((d) => `${shortDate(d.date)} ${d.status === 'absent' ? '결석' : `${d.grade?.grade} ${Math.round(d.score ?? 0)}점`}`)
+    .join(', ');
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: kind === 'week' ? 6 : 2 }}>
+    <View role="img" aria-label={`날짜별 점수: ${spoken || '기록 없음'}`} style={{ flexDirection: 'row', alignItems: 'flex-end', gap: kind === 'week' ? 6 : 2 }}>
       {days.map((d) => {
         const n = fromKey(d.date).getDate();
         const label = kind === 'week' ? (d.date === today ? '오늘' : weekdayOf(d.date)) : n === 1 || n % 5 === 0 ? String(n) : '';
@@ -150,7 +180,7 @@ function DayBars({ days, kind }: { days: DayGrade[]; kind: PeriodKind }) {
         return (
           <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
             {kind === 'week' && (
-              <Text style={{ fontSize: 13, fontWeight: '900', fontFamily: SERIF, color: d.status === 'scored' ? d.grade?.color : colors.sub }}>{top}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '900', fontFamily: SERIF, color: d.status === 'scored' && d.grade ? ink(d.grade.color) : colors.sub }}>{top}</Text>
             )}
             <View style={{ height: H, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
               {d.status === 'scored' && (
@@ -161,7 +191,9 @@ function DayBars({ days, kind }: { days: DayGrade[]; kind: PeriodKind }) {
                 <View style={{ width: kind === 'week' ? '70%' : '80%', height: 3, borderRadius: 2, backgroundColor: colors.line }} />
               )}
             </View>
-            <Text style={{ fontSize: 10, width: 28, textAlign: 'center', color: d.date === today ? colors.primary : colors.sub }}>{label}</Text>
+            <Text style={{ fontSize: 11, width: 30, textAlign: 'center', color: d.date === today ? colors.primary : colors.sub }} maxFontSizeMultiplier={1.2}>
+              {label}
+            </Text>
           </View>
         );
       })}
@@ -190,7 +222,7 @@ function SubjectTable({ r }: { r: PeriodReport }) {
           <Text style={{ width: 72, fontSize: 14, color: colors.text }}>{s.label}</Text>
           <View style={[styles.row, { flex: 1, gap: 6 }]}>
             <View style={{ flex: 1 }}>
-              <ProgressBar value={s.ratio} max={1} color={s.color} />
+              <ProgressBar value={s.ratio} max={1} color={s.color} label={`${s.name} 평균 달성률`} />
             </View>
             <Text style={{ width: 38, textAlign: 'right', fontSize: 12, color: colors.text }}>{Math.round(s.ratio * 100)}%</Text>
           </View>
@@ -235,7 +267,7 @@ function GoalTable({ r }: { r: PeriodReport }) {
           <Text style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: '700', color: colors.primary }}>{Math.round(g.overall * 100)}%</Text>
         </View>
       ))}
-      <Text style={[styles.muted, { fontSize: 11 }]}>등급은 이 기간 동안 계획한 양을 얼마나 해냈는지, ‘전체’는 목표 전체 진행률이에요.</Text>
+      <Text style={[styles.muted, { fontSize: 12, lineHeight: 17 }]}>등급은 이 기간 동안 계획한 양을 얼마나 해냈는지, ‘전체’는 목표 전체 진행률이에요.</Text>
     </Card>
   );
 }
@@ -258,9 +290,9 @@ function BodyCard({ r }: { r: PeriodReport }) {
     <Card title="📏 생활 기록">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {items.map((it) => (
-          <View key={it.label} style={{ flexGrow: 1, minWidth: '30%', backgroundColor: colors.bg, borderRadius: 10, padding: 8 }}>
-            <Text style={{ fontSize: 11, color: colors.sub }}>{it.label}</Text>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: it.color ?? colors.text }}>{it.value}</Text>
+          <View key={it.label} style={{ flexGrow: 1, minWidth: '30%', backgroundColor: colors.bg, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 10 }}>
+            <Text style={{ fontSize: 12, color: colors.sub }}>{it.label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: it.color ? ink(it.color) : colors.text }}>{it.value}</Text>
           </View>
         ))}
       </View>
@@ -272,7 +304,9 @@ function CommentCard({ r }: { r: PeriodReport }) {
   if (!r.comments.length) return null;
   return (
     <View style={{ backgroundColor: PAPER, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: PAPER_LINE, padding: 16, gap: 8 }}>
-      <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, fontFamily: SERIF }}>📝 종합 의견</Text>
+      <Text role="heading" {...headingLevel(2)} style={{ fontSize: 16, fontWeight: '800', color: colors.text, fontFamily: SERIF }}>
+        📝 종합 의견
+      </Text>
       {r.comments.map((c) => (
         <Text key={c} style={{ fontSize: 14, color: colors.text, lineHeight: 21 }}>
           · {c}
@@ -289,11 +323,11 @@ function Legend() {
       <View style={[styles.row, { flexWrap: 'wrap', gap: 10 }]}>
         {GRADES.map((g, i) => (
           <Text key={g.grade} style={{ fontSize: 12, color: colors.sub }}>
-            <Text style={{ fontWeight: '900', color: g.color, fontFamily: SERIF }}>{g.grade}</Text> {i === GRADES.length - 1 ? `${GRADES[i - 1].min} 미만` : `${g.min}↑`}
+            <Text style={{ fontWeight: '900', color: ink(g.color), fontFamily: SERIF }}>{g.grade}</Text> {i === GRADES.length - 1 ? `${GRADES[i - 1].min} 미만` : `${g.min}↑`}
           </Text>
         ))}
       </View>
-      <Text style={[styles.muted, { fontSize: 11 }]}>종합 점수는 하루 점수의 평균이에요. 기록이 없는 날은 0점(결석)으로, 오늘은 하루가 끝난 뒤 반영돼요.</Text>
+      <Text style={[styles.muted, { fontSize: 12, lineHeight: 17 }]}>종합 점수는 하루 점수의 평균이에요. 기록이 없는 날은 0점(결석)으로, 오늘은 하루가 끝난 뒤 반영돼요.</Text>
     </View>
   );
 }
